@@ -1,0 +1,97 @@
+! Sample 9: Modular Programming and Separate Compilation
+! Main issues: Missing semicolons, array initializations
+
+! Module name declaration
+NAME inventory_module;
+
+! Global data block shared among modules
+BLOCK inventory_data;
+  ! Global variables accessible to other modules
+  INT .inventory_records[0:999];
+  INT record_count := 0;
+  INT next_id := 1001;
+  
+  ! Constants that might be used by other modules
+  LITERAL 
+    MAX_RECORDS = 1000,
+    RECORD_SIZE = 256;
+END BLOCK;
+
+! Private data block accessible only in this module
+BLOCK PRIVATE;
+  ! Module-specific variables
+  INT module_id := 5;
+  INT local_cache[0:9];
+END BLOCK;
+
+! External procedure references (would be defined in other modules)
+PROC validate_record(rec_ptr);
+  INT .rec_ptr;
+EXTERNAL;
+
+PROC log_action(action_code, record_id);
+  INT action_code;
+  INT record_id;
+EXTERNAL;
+
+! Procedure declaration
+PROC add_inventory_record(rec_ptr);
+  INT .rec_ptr;
+BEGIN
+  INT status := 0;
+  
+  ! Check if we have space
+  IF record_count >= MAX_RECORDS THEN
+    RETURN 1; ! Error - inventory full
+    
+  ! Call external procedure to validate
+  CALL validate_record(rec_ptr);
+  
+  ! Add record to inventory
+  inventory_records[record_count] ':=' rec_ptr FOR RECORD_SIZE / 2;
+  
+  ! Update record count
+  record_count := record_count + 1;
+  
+  ! Log the action
+  CALL log_action(1, next_id);
+  
+  ! Increment ID for next record
+  next_id := next_id + 1;
+  
+  RETURN 0; ! Success
+END;
+
+! Another exportable procedure from this module
+PROC get_inventory_record(id, rec_ptr);
+  INT id;
+  INT .rec_ptr;
+BEGIN
+  INT i := 0;
+  
+  WHILE i < record_count DO
+  BEGIN
+    ! Check if record ID matches (assuming ID is at offset 0)
+    IF inventory_records[i] = id THEN
+    BEGIN
+      ! Copy record to output buffer
+      rec_ptr ':=' inventory_records[i] FOR RECORD_SIZE / 2;
+      RETURN 0; ! Success
+    END;
+    
+    i := i + 1;
+  END;
+  
+  RETURN 1; ! Error - record not found
+END;
+
+! Procedure with MAIN attribute - this module can be the main entry point
+PROC inventory_main MAIN;
+BEGIN
+  ! Initialize module
+  record_count := 0;
+  next_id := 1001;
+  
+  ! Main processing loop would go here
+  ! ...
+END;

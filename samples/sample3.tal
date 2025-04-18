@@ -1,0 +1,65 @@
+! Sample 3: Structures and Substructures
+! Main issues: Missing semicolons, string assignments in structures
+
+! Template structure declaration
+STRUCT employee_template (*);
+BEGIN
+  INT emp_id;
+  STRING name[0:29];
+  STRING dept[0:9];
+  FIXED(2) salary;
+  
+  ! Substructure
+  STRUCT address;
+  BEGIN
+    STRING street[0:19];
+    STRING city[0:14];
+    STRING state[0:1];
+    STRING zip[0:4];
+  END;
+END;
+
+! Structure with indirection
+STRUCT .employee_db[0:99] (employee_template);
+
+! Structure pointer
+INT .emp_ptr (employee_template);
+
+PROC structure_demo MAIN;
+BEGIN
+  ! Direct structure
+  STRUCT person (employee_template);
+  
+  ! Initialize structure
+  person.emp_id := 1001;
+  person.name ':=' "John Smith";        ! Correct for string move
+  person.dept ':=' "Engineering";       ! Correct for string move
+  person.salary := 5000.00F;
+  person.address.street ':=' "123 Main St";
+  person.address.city ':=' "Anytown";
+  person.address.state ':=' "CA";
+  person.address.zip ':=' "94086";
+  
+  ! Access structure elements in database
+  employee_db[0] := person;
+  employee_db[1].emp_id := 1002;
+  employee_db[1].name ':=' "Jane Doe";
+  employee_db[1].salary := 6000.00F;
+  
+  ! Use structure pointer
+  @emp_ptr := @employee_db[0];
+  emp_ptr.salary := 5250.00F;
+  
+  ! Structure with redefinition
+  STRUCT s;
+  BEGIN
+    INT a[0:2];
+    STRING b[0:5];
+    
+    ! Redefinition
+    INT(32) c[0:0] = a;
+  END;
+  
+  ! Move operation with structure
+  employee_db[2] ':=' employee_db[0] FOR $LEN(employee_db[0]) / 2;  ! Correct
+END;

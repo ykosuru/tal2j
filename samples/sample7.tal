@@ -1,0 +1,74 @@
+! Sample 7: File Handling
+! Main issues: String assignments and arrow operator usage
+
+! Include external declarations for Guardian procedures
+?SOURCE $SYSTEM.SYSTEM.EXTDECS(OPEN, CLOSE, WRITEREAD, READ, WRITE)
+?SOURCE $SYSTEM.SYSTEM.EXTDECS(FILEINFO, AWAITIO, POSITION, MYTERM)
+
+PROC file_handling MAIN;
+BEGIN
+  ! File numbers
+  INT terminal;
+  INT in_file;
+  INT out_file;
+  
+  ! Buffers and variables
+  STRING .filename[0:30];
+  STRING .buffer[0:255];
+  INT length;
+  INT error;
+  
+  ! Get home terminal name and open it
+  CALL MYTERM(filename);
+  CALL OPEN(filename, terminal);
+  
+  ! Create a prompt
+  buffer ':=' "Enter filename: ";
+  length := 16;  ! Length of prompt
+  
+  ! Read filename from terminal
+  CALL WRITEREAD(terminal, buffer, length, 30, length);
+  buffer[length + 16] := 0;  ! Null-terminate the input
+  
+  ! Copy the entered filename
+  filename ':=' buffer[16] FOR length;
+  filename[length] := 0;     ! Null-terminate
+  
+  ! Open input file
+  CALL OPEN(filename, in_file);
+  IF < THEN
+  BEGIN
+    CALL FILEINFO(in_file, error);
+    buffer ':=' "Error opening input file: ";
+    ! Convert error to string and append
+    INT err_pos := 26;  ! Position after prompt
+    error := $INT(error);    ! Convert to INT
+    buffer[err_pos].<0:15> := error + "0";
+    CALL WRITE(terminal, buffer, 28);
+    RETURN;
+  END;
+  
+  ! Prepare output filename
+  buffer ':=' "output ";
+  ! Open output file (creation)
+  CALL OPEN(buffer, out_file, 1);
+  
+  ! Read from input and write to output
+  WHILE 1 DO
+  BEGIN
+    CALL READ(in_file, buffer, 80, length);
+    IF < THEN
+      RETURN;  ! Error or EOF
+      
+    IF length > 0 THEN
+      CALL WRITE(out_file, buffer, length);
+  END;
+  
+  ! Close files
+  CALL CLOSE(in_file);
+  CALL CLOSE(out_file);
+  
+  ! Report success
+  buffer ':=' "File transfer complete.";
+  CALL WRITE(terminal, buffer, 23);
+END;

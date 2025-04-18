@@ -1,0 +1,73 @@
+! Sample 4: Control Flow Statements
+! Main issues: Missing semicolons in control structures
+
+INT result := 0;
+STRING .message[0:49];
+
+PROC control_flow_demo MAIN;
+BEGIN
+  INT i, j, choice;
+  choice := 2;
+  
+  ! IF-THEN-ELSE Statement
+  IF choice = 1 THEN
+    result := 100
+  ELSE IF choice = 2 THEN
+    result := 200
+  ELSE
+    result := 300;
+  
+  ! Compound statements with BEGIN-END
+  IF result > 100 THEN
+  BEGIN
+    result := result * 2;
+    message ':=' "Result is greater than 100";  ! Fixed string assignment
+  END;
+  
+  ! CASE statement
+  CASE choice OF
+  BEGIN
+    !0! result := 1000;
+    !1! result := 2000;
+    !2! BEGIN
+         result := 3000;
+         message ':=' "Choice was 2";  ! Fixed string assignment
+       END;
+    !3! result := 4000;
+    OTHERWISE result := 9999;
+  END;
+  
+  ! FOR loop with TO
+  FOR i := 0 TO 9 DO
+    result := result + i;
+    
+  ! FOR loop with DOWNTO
+  FOR i := 9 DOWNTO 0 DO
+    result := result - i;
+    
+  ! FOR loop with BY
+  FOR i := 0 TO 20 BY 2 DO
+    result := result + i;
+    
+  ! WHILE loop
+  i := 0;
+  WHILE i < 10 DO
+  BEGIN
+    result := result + i * i;
+    i := i + 1;
+  END;
+  
+  ! DO-UNTIL loop
+  j := 0;
+  DO
+    j := j + 10
+  UNTIL j >= 100;
+  
+  ! GOTO statement
+  GOTO skip_section;
+  
+  result := 999999;  ! This will be skipped
+  
+  skip_section:
+  result := result + 1;
+END;

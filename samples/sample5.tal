@@ -1,0 +1,83 @@
+! Sample 5: Procedures, Subprocedures, and Parameter Passing
+! Main issues: Missing semicolons, parameter list issues
+
+! Function (typed procedure) that returns a value
+INT PROC calculate_sum(a, b);
+INT a, b;
+BEGIN
+  RETURN a + b;
+END;
+
+! Procedure with value and reference parameters
+PROC modify_values(in_val, out_ref);
+INT in_val;    ! Value parameter
+INT .out_ref;  ! Reference parameter
+BEGIN
+  INT local_val := in_val * 2;
+  out_ref := local_val;
+END;
+
+! Procedure with variable parameters
+PROC optional_params(a, b, c) VARIABLE;
+INT a, b, c;
+BEGIN
+  IF NOT $PARAM(c) THEN
+    c := 0;  ! Default value if parameter not provided
+    
+  IF $PARAM(a) AND $PARAM(b) THEN
+    c := a + b;
+END;
+
+! Main procedure with subprocedures
+PROC procedure_demo MAIN;
+BEGIN
+  INT value1 := 10;
+  INT value2 := 20;
+  INT result;
+  
+  ! Call function and use return value
+  result := calculate_sum(value1, value2);
+  
+  ! Call procedure with reference parameter
+  CALL modify_values(result, value1);
+  
+  ! Call procedure with optional parameters
+  CALL optional_params(5, 10);     ! c is not provided
+  CALL optional_params(5, 10, 15); ! All parameters provided
+  
+  ! Declare subprocedure
+  SUBPROC local_computation(x, y);
+  INT x, y;
+  BEGIN
+    ! Local to the subprocedure
+    INT sublocal := x * y;
+    
+    ! Can access the procedure's variables
+    result := sublocal + value1;
+    
+    ! Entry point declaration
+    ENTRY alternate_entry;
+    result := result * 2;
+  END;
+  
+  ! Call subprocedure
+  CALL local_computation(5, 6);
+  
+  ! Call entry point
+  CALL alternate_entry;
+  
+  ! Forward declaration
+  SUBPROC forward_sub(z);
+  INT z;
+  FORWARD;
+  
+  ! Call the forward-declared subprocedure
+  CALL forward_sub(100);
+  
+  ! Actual subprocedure declaration
+  SUBPROC forward_sub(z);
+  INT z;
+  BEGIN
+    result := z + result;
+  END;
+END;

@@ -1,0 +1,207 @@
+! ===========================================================================
+! Comprehensive TAL Program Sample
+! Demonstrates arrays, pointers, subprocs, global variables, external callouts,
+! assignments, byte array operations, bit manipulation, and other TAL features
+! ===========================================================================
+NAME inventory_system;
+
+! Forward declarations
+FORWARD PROC print_error;
+FORWARD STRUCT customer_record;
+
+! External procedures (would be defined in other modules)
+EXTERNAL PROC log_transaction;
+EXTERNAL PROC fetch_customer_data;
+
+! Global literal declarations
+LITERAL max_items = 1000;
+LITERAL max_customers = 500;
+LITERAL buffer_size = 4096;
+LITERAL success = 0;
+LITERAL error_file_not_found = 1;
+LITERAL error_invalid_input = 2;
+LITERAL error_system = 3;
+
+! Type definitions
+INT item_id;
+STRING item_name;
+
+! Global structure definitions
+STRUCT item_record;
+BEGIN
+  INT item_id;
+  STRING item_name[0:30];
+  FIXED(2) item_price;
+  INT quantity_on_hand;
+  INT reorder_level;
+  INT supplier_id;
+  STRING last_updated[0:10];
+END;
+
+STRUCT customer_record;
+BEGIN
+  INT customer_id;
+  STRING customer_name[0:50];
+  STRING address_line1[0:30];
+  STRING address_line2[0:30];
+  STRING city[0:20];
+  STRING state[0:2];
+  STRING zip_code[0:9];
+  FIXED(2) account_balance;
+  FILLER 2;  ! Padding for alignment
+  ! Bit flags for customer attributes
+  UNSIGNED(1) is_active;
+  UNSIGNED(1) has_credit;
+  UNSIGNED(1) tax_exempt;
+  UNSIGNED(13) reserved;  ! Reserved bits
+END;
+
+! System global pointer declarations
+INT .SG system_time;
+
+! Global variables 
+INT error_code := 0;
+STRING error_messages[0:3] = 'P' := ["Success", "File not found", "Invalid input", "System error"];
+INT transaction_count := 0;
+STRUCT item_record inventory[0:max_items-1];
+INT inventory_count := 0;
+
+! Pointer declarations
+INT .EXT error_ptr;
+STRUCT customer_record .current_customer;
+STRING .buffer;
+
+! Read-only arrays
+INT command_codes[0:5] = 'P' := [1, 2, 3, 4, 5, 6];
+STRING command_names[0:5] = 'P' := ["ADD", "DELETE", "UPDATE", "QUERY", "REPORT", "EXIT"];
+
+! Equivalenced variables
+INT last_error = error_code;
+INT buffer_length = 'G'[10];
+
+! Global block declarations
+BLOCK inventory_io;
+  STRING filename[0:30];
+  INT file_error;
+  INT record_count;
+END BLOCK;
+
+! ===========================================================================
+! Main procedure
+! ===========================================================================
+INT PROC main_proc, MAIN;
+  INT i;
+  INT status;
+  STRING input_buffer[0:100];
+  STRING temp_str[0:50];
+  INT j;
+BEGIN
+  ! Initialize buffer
+  buffer := buffer_size * [" "];
+  
+  ! Initialize inventory with sample data
+  CALL initialize_inventory;
+  
+  ! Main processing loop
+  cmd := 0;
+  WHILE cmd <> 6 DO
+    ! Display menu and get command
+    CALL display_menu;
+    CALL read_command(cmd);
+    
+    ! Process command
+    CASE cmd OF
+    BEGIN
+      1: CALL add_item;
+      2: CALL delete_item;
+      3: CALL update_item;
+      4: CALL query_item;
+      5: CALL generate_report;
+      6: ; ! Exit
+      OTHERWISE
+        error_code := error_invalid_input;
+        CALL print_error;
+    END;
+    
+    ! Log transaction if not exiting
+    IF cmd <> 6 THEN
+      transaction_count := transaction_count + 1;
+      CALL log_transaction(cmd, transaction_count);
+    ENDIF;
+  ENDWHILE;
+  
+  ! Clean up
+  error_ptr := @error_code;
+  IF error_ptr <> 0 THEN
+    CALL print_error;
+  ENDIF;
+  
+  ! Example of bit manipulation - check if the first item is active and tax exempt
+  IF inventory_count > 0 THEN
+    current_customer := @customer_record;
+    current_customer.is_active := 1;
+    current_customer.tax_exempt := 1;
+    current_customer.reserved := 0;
+  ENDIF;
+  
+  RETURN success;
+END;
+
+! ===========================================================================
+! Subprocedures
+! ===========================================================================
+
+! Initialize inventory with sample data
+PROC initialize_inventory;
+  INT i;
+BEGIN
+  ! Set initial inventory items
+  inventory_count := 3;
+  
+  ! Item 1
+  inventory[0].item_id := 1001;
+  inventory[0].item_name := "Widget A";
+  inventory[0].item_price := 19.99F;
+  inventory[0].quantity_on_hand := 150;
+  inventory[0].reorder_level := 25;
+  inventory[0].supplier_id := 101;
+  inventory[0].last_updated := "2025-04-01";
+  
+  ! Item 2
+  inventory[1].item_id := 1002;
+  inventory[1].item_name := "Widget B";
+  inventory[1].item_price := 29.99F;
+  inventory[1].quantity_on_hand := 75;
+  inventory[1].reorder_level := 15;
+  inventory[1].supplier_id := 102;
+  inventory[1].last_updated := "2025-04-01";
+  
+  ! Item 3
+  inventory[2].item_id := 1003;
+  inventory[2].item_name := "Widget C";
+  inventory[2].item_price := 39.99F;
+  inventory[2].quantity_on_hand := 50;
+  inventory[2].reorder_level := 10;
+  inventory[2].supplier_id := 101;
+  inventory[2].last_updated := "2025-04-01";
+END;
+
+! Display menu
+PROC display_menu;
+  INT i;
+BEGIN
+  buffer := "==== Inventory System Menu ====";
+  CALL write_line(buffer, 30);
+  
+  ! Display command options
+  FOR i := 0 TO 5 DO
+    buffer := "  ";
+    buffer[2] := command_codes[i];
+    buffer[3] := ". ";
+    buffer[5] := command_names[i];
+    CALL write_line(buffer, 15);
+  ENDFOR;
+  
+  buffer := "Enter command: ";
+  CALL write
+

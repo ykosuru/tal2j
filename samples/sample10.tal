@@ -1,0 +1,137 @@
+! Sample 10: Advanced Features and System Interaction
+! Main issues: Missing semicolons, procedure parameter issues
+
+! Include required external declarations
+?SOURCE $SYSTEM.SYSTEM.EXTDECS(DELAY, INITIALIZER, TIME, PROCESSOR_GETINFO)
+
+! Privileged procedures for system operation
+PROC privileged_operation CALLABLE;
+BEGIN
+  ! Access system global data using system global pointer
+  INT .SG cpu_counters;
+  
+  ! Access system data with 'SG' equivalencing
+  INT sys_status = 'SG' + 20;
+  
+  ! Use privileged functions
+  INT switches := $SWITCHES;
+  
+  ! Code block with privileged machine instructions
+  CODE(RSPI);  ! Reset privileged interrupt
+END;
+
+! Procedure with extended addressing capabilities
+PROC extended_addressing;
+BEGIN
+  ! Extended pointers
+  INT .EXT ext_ptr1;
+  STRING .EXT ext_ptr2;
+  
+  ! Allocate an extended data segment (conceptual)
+  ! First address of extended segment
+  @ext_ptr1 := %2000000D;
+  
+  ! Convert between standard and extended addresses
+  INT .std_ptr;
+  @std_ptr := $LADR(ext_ptr1);
+  @ext_ptr2 := $XADR(std_ptr);
+  
+  ! Work with extended addresses
+  ext_ptr1 := 12345;
+  ext_ptr1[1000] := 67890;
+END;
+
+! Procedure to demonstrate advanced compiler features
+PROC compiler_features;
+BEGIN
+  ! Toggle-based conditional compilation
+  ?SETTOG 1
+  ?IF 1
+  INT included_var := 1;
+  ?ENDIF 1
+  
+  ! CPU-specific code
+  ?IF TNS/II
+  ! Code specific to Nonstop TNS/II systems
+  INT tns2_var := 2;
+  ?ENDIF TNS/II
+END;
+
+! Recursive procedure example
+INT PROC factorial(n);
+INT n;
+BEGIN
+  IF n <= 1 THEN
+    RETURN 1
+  ELSE
+    RETURN n * factorial(n - 1);
+END;
+
+! Procedure with interrupt handling
+PROC interrupt_handler INTERRUPT;
+BEGIN
+  ! Handle interrupt
+  ! ...
+  
+  ! Return from interrupt
+  RETURN;
+END;
+
+! Resident procedure that stays in memory
+PROC cache_manager RESIDENT;
+BEGIN
+  ! Code that should remain in memory
+  ! ...
+END;
+
+! Extensible procedure that can have parameters added later
+PROC report_generator(format, destination) EXTENSIBLE;
+INT format;
+INT destination;
+BEGIN
+  ! Check parameters
+  IF NOT $PARAM(format) THEN
+    format := 0;
+    
+  IF NOT $PARAM(destination) THEN
+    destination := 0;
+    
+  ! Process based on parameters
+  ! ...
+END;
+
+! Main procedure demonstrating system interaction
+PROC advanced_demo MAIN;
+BEGIN
+  INT cpu_info[0:9];
+  INT time_array[0:3];
+  
+  ! Get current time
+  CALL TIME(time_array);
+  
+  ! Get processor information
+  CALL PROCESSOR_GETINFO(0, cpu_info);  ! Fixed parameter (cpunumber=0)
+  
+  ! Use recursive function
+  INT f := factorial(5);
+  
+  ! Use CLUDGE statement to access hard-to-reach items
+  ! This is a conceptual example - actual syntax might differ
+  STRING .sys_name[0:7];
+  CODE(PCAL 0, 91);  ! MYSYSTEMNUMBER
+  
+  ! Delay execution
+  CALL DELAY(60000);  ! 1 minute
+  
+  ! Use startup sequence for initialization
+  PROC process_startup(rucb, passthru, message, msglength, match) VARIABLE;
+  INT .rucb, .passthru, .message, msglength, match;
+  BEGIN
+    ! Process startup parameters
+    ! ...
+  END;
+  
+  ! Fixed parameter passing: removed the initial two empty parameters
+  ! and provided a proper NULL parameter
+  CALL INITIALIZER(!rucb!, !passthru!, process_startup);
+END;

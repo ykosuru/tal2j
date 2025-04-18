@@ -1,0 +1,68 @@
+! Sample 6: Bit Manipulation and Expressions
+! Main issues: Syntax for bit deposits and extractions
+
+PROC bit_operations MAIN;
+BEGIN
+  INT value := %B10101010;  ! Binary value
+  INT mask := %177;         ! Octal value
+  INT result;
+  INT(32) dbl_result;
+  
+  ! Bit extraction
+  result := value.<0:7>;    ! Extract high byte
+  result := value.<8:15>;   ! Extract low byte
+  result := value.<3>;      ! Extract single bit
+  
+  ! Bit deposit
+  value.<0:7> := %FF;       ! Set high byte
+  value.<10> := 1;          ! Set bit 10
+  value.<12:15> := 0;       ! Clear bits 12-15
+  
+  ! Shift operations
+  result := value << 2;     ! Shift left by 2 bits (signed)
+  result := value >> 3;     ! Shift right by 3 bits (signed)
+  result := value '<<' 4;   ! Unsigned left shift
+  result := value '>>' 5;   ! Unsigned right shift
+  
+  ! Logical operations
+  result := value LOR mask;      ! Logical OR
+  result := value LAND mask;     ! Logical AND
+  result := value XOR mask;      ! Exclusive OR
+  result := NOT value;           ! Logical negation
+  
+  ! Arithmetic operations
+  result := value + 10;          ! Addition
+  result := value - 5;           ! Subtraction
+  result := value * 3;           ! Multiplication
+  result := value / 2;           ! Division
+  
+  ! Unsigned arithmetic operations
+  result := value '+' 10;        ! Unsigned addition
+  result := value '-' 5;         ! Unsigned subtraction
+  dbl_result := value '*' 3;     ! Unsigned multiplication
+  result := $UDBL(value) '/' 2;  ! Unsigned division
+  result := $UDBL(value) '\' 3;  ! Modulo division
+  
+  ! Complex expressions
+  result := ((value + 5) * 3 - 7) / 2;
+  result := (value.<0:3> << 4) LOR value.<4:7>;
+  
+  ! Relational expressions
+  IF (value > 100) AND (value < 200) OR (value = 50) THEN
+    result := 1;
+    
+  ! Assignment expression form
+  IF (result := value * 2) > 300 THEN
+    result := 300;
+    
+  ! CASE expression form
+  result := CASE value OF BEGIN
+              !0! 0;
+              !1! 1;
+              !2! 2;
+              OTHERWISE -1;
+            END;
+            
+  ! IF-THEN-ELSE expression form
+  result := IF value > 100 THEN value - 100 ELSE value;
+END;

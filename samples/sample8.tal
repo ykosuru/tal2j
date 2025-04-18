@@ -1,0 +1,133 @@
+?PAGE "INITIALIZE PROGRAM PARAMETERS – CONFIG^SETUP^P100"
+! READ IN PROGRAM PARAMETERS
+ 
+PROC CONFIG^SETUP^P100;
+ 
+BEGIN
+ 
+INT
+  result^li,
+  config^ret^len^l,
+  .buffer^li[0:19],
+  .byte^counter^li[0:1],
+  bytes^read^li,
+  continue^li,
+  idx^li;
+ 
+STRING
+  .config^in^ls[0:19],
+  .buffer^ls := @buffer^li '<<' 1,
+  .byte^counter^ls := @byte^counter^li '<<' 1;
+ 
+INT(32)
+  transaction^tag^li32;
+ 
+int   err;
+int   len;
+string .config^name[0:23] := 24 * [" "];
+string .ptr;
+string .value^buffer[0:40];
+int   val_len;
+ 
+config^name ':=' "LOC-REQUEST" -> @ptr;
+len := @ptr '-' @config^name;
+err := process^parameters(param^msg, config^name, len, value^buffer, val_len, 0);
+IF err OR val_len > 26
+  THEN log^err(abend^process, "LOC-REQUEST is missing/invalid")
+ELSE
+  begin
+    for^tacl ':=' value^buffer for val_len & "." -> @ptr;
+    for^tacl^length := @ptr '-' @for^tacl;
+  end;
+ 
+config^in^ls ':=' "MAX-OUTPUT-INDEX" & [0];
+result^li := PROCESS^PARAMETERS ( param^msg,
+                             config^in^ls,
+                             ,         ! length not needed, null end
+                             buffer^ls,
+                             config^ret^len^li,
+                             1);       ! integer type
+ 
+IF result^li OR buffer^li > max^output^index^l THEN
+  LOG^ERR (stop^process,
+           "Invalid MAX-OUTPUT-INDEX param");
+ 
+max^output^index^gi := buffer^li;
+ 
+FOR idx^li := 0 TO max^output^index^l - 1 DO
+  output^file^item^cnt^gi[idx^li] := 0;
+ 
+! check if anything in the files
+!
+! NOTE – tpsout^file is indexed by file^index^gi by definition
+ 
+result^li := BEGINTRANSACTION(transaction^tag^li32);
+FOR file^index^gi := 0 TO max^output^index^gi - 1 DO
+  BEGIN
+    buffer^li := 0;
+    CALL KEYPOSITION (
+      tpsout^file.fnum,     ! position to beginning of file
+      buffer^li, buffer^li);
+ 
+    IF <> THEN
+      BEGIN
+        CALL FILEINFO (tpsout^file.fnum, result^li);
+        LOG^ERR (abend^process,
+                 "File error # on initial position to TPS OUT FILE", result^li);
+      END;
+ 
+    continue^li := true;
+    WHILE continue^li DO
+      BEGIN
+        CALL READ (
+          tpsout^file.fnum,
+          tps^10,
+          $LEN(tps^10),
+          bytes^read^li);
+ 
+        IF <> THEN               ! read not successful
+          BEGIN
+            CALL FILEINFO (tpsout^file.fnum, result^li);
+            IF result^li = 1 THEN
+              continue^li := false
+            ELSE
+              BEGIN
+                LOG^ERR (abend^process,
+                         "READ error # on file TPS OUT, initial read", result^li);
+              END;
+          END
+        ELSE                     ! successful read
+          BEGIN
+            IF (tps^10.c^rec.record^code = "00") OR
+               (tps^10.c^rec.record^code = "99") THEN
+              BEGIN              ! get rid of control records
+                CALL LOCKREC (tpsout^file.fnum);
+                IF <> THEN
+                  BEGIN
+                    CALL FILEINFO (tpsout^file.fnum, result^li);
+                    LOG^ERR (abend^process,
+                             "File error # on lockrec of TPS OUT FILE", result^li);
+                  END;
+                CALL WRITEUPDATEUNLOCK (
+                  tpsout^file.fnum,
+                  tps^10,
+                  0);
+                IF <> THEN
+                  BEGIN
+                    CALL FILEINFO (tpsout^file.fnum, result^li);
+                    LOG^ERR (abend^process,
+                             "WRITE error # on file TPS OUT, init ", result^li);
+                  END;
+              END
+            ELSE   ! successful read of non control record
+              output^file^item^cnt^gi[file^index^gi] :=
+              output^file^item^cnt^gi[file^index^gi] + 1;
+          END;
+      END;
+  END;
+ 
+result^li := ENDTRANSACTION;
+ 
+END ;  ! end of proc
+
+
