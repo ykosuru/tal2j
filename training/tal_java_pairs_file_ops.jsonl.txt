@@ -1,0 +1,5 @@
+{"text": "Open a file for reading", "<TAL>FILE INFILE;\nOPEN INFILE, 'INPUT.DAT', INPUT;</TAL><JAVA>BufferedReader INFILE = new BufferedReader(new FileReader(\"INPUT.DAT\"));</JAVA>"}
+{"text": "Open a file for writing", "<TAL>FILE OUTFILE;\nOPEN OUTFILE, 'OUTPUT.DAT', OUTPUT;</TAL><JAVA>BufferedWriter OUTFILE = new BufferedWriter(new FileWriter(\"OUTPUT.DAT\"));</JAVA>"}
+{"text": "Close input file", "<TAL>CLOSE INFILE;</TAL><JAVA>INFILE.close();</JAVA>"}
+{"text": "Close output file", "<TAL>CLOSE OUTFILE;</TAL><JAVA>OUTFILE.close();</JAVA>"}
+{"text": "Open a file for appending", "<TAL>FILE LOGFILE;\nOPEN LOGFILE, 'LOG.TXT', OUTPUT, APPEND;</TAL><JAVA>BufferedWriter LOGFILE = new BufferedWriter(new FileWriter(\"LOG.TXT\", true));</JAVA>"}
