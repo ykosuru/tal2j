@@ -1,0 +1,7 @@
+{"text": "Carry flag usage in addition", "<TAL>INT A = 65535;\nINT B = 1;\nINT C;\nC = A + B WITH $CARRY;</TAL><JAVA>int A = 65535;\nint B = 1;\nint C = A + B;\nboolean carry = (A + B) > 65535;</JAVA>"}
+{"text": "Getting length of a byte array", "<TAL>BYTE MYARRAY[100];\nINT LENGTH;\nLENGTH = $LEN(MYARRAY);</TAL><JAVA>byte[] MYARRAY = new byte[100];\nint LENGTH = MYARRAY.length;</JAVA>"}
+{"text": "Generating a random number", "<TAL>INT RAND;\nRAND = $RANDOM;</TAL><JAVA>int RAND = new java.util.Random().nextInt();</JAVA>"}
+{"text": "Retrieving system date", "<TAL>DATE CURR_DATE;\nCURR_DATE = $DATE;</TAL><JAVA>java.time.LocalDate CURR_DATE = java.time.LocalDate.now();</JAVA>"}
+{"text": "Error flag check after an operation", "<TAL>IF $ERROR THEN\n  CALL HANDLE_ERROR;</TAL><JAVA>if (hasError) {\n    handleError();\n}</JAVA>"}
+{"text": "Reading system time", "<TAL>TIME NOW;\nNOW = $TIME;</TAL><JAVA>java.time.LocalTime NOW = java.time.LocalTime.now();</JAVA>"}
+{"text": "End of file check", "<TAL>IF $EOF THEN\n  CALL HANDLE_EOF;</TAL><JAVA>if (reader.ready() == false) {\n    handleEOF();\n}</JAVA>"}
