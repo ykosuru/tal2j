@@ -1,0 +1,2982 @@
+MAJOR FEATURES 
+The major features of TAL are: 
+Procedures--The code space for each program contains one or more procedures. A procedure is a block of machine instructions that performs a specific task. It exists once in the program but is callable from anywhere in the program. MAJOR FEATURES 
+The major features of TAL are: 
+Procedures--The code space for each program contains one or more procedures. A procedure is a block of machine instructions that performs a specific task. It exists once in the program but is callable from anywhere in the program. 
+When the current procedure invokes another procedure, the system automatically saves the current process environment. When the called procedure terminates, the system restores the environment of the previous procedure. Thus, each procedure executes in its own environment and is not affected by the actions of other procedures. 
+Each activation of a procedure has its own local data area. That is, the system allocates and initializes a new local data area each time a procedure is entered. When each activation completes 
+execution, it relinquishes its local data area. Thus, the memory space that a program requires is continuously held to a minimum. 
+Recursion--Because each activation of a procedure has its own local data area, a procedure can call itself. This feature, called 
+recursion, can enhance programming efficiency for certain applications. 
+Parameter Passing--You can declare optional or required parameters for procedures. 
+Subprocedures--A procedure can contain subprocedures, callable only from within the same procedure. Since each activation of a subprocedure has its own private data, subroutines can be recursive. 
+• 
+• 
+• 
+• 
+• 
+Six Data Types--You can declare and reference six types of data: 
+--STRING 
+--INT 
+--INT(32) 
+--FIXED 
+--REAL 
+--REAL(64) 
+8-bit integer byte 
+16-bit integer word 
+32-bit integer doubleword 
+64-bit fixed-point quadword 
+32-bit floating-point doubleword 
+64-bit floating-point quadword 
+• Data Structures--You can describe and reference sets of related data variables such as records and arrays. 
+..,. 82581 AOO 3/85 
+INTRODUCTION Major Features 
+1-3 
+ 
+INTRODUCTION
+Interface With Operating System 
+• Data Operations--You can move a contiguous group of words or bytes and compare one group with one another. You can scan a series of bytes for the first byte that matches (or fails to match) a given character. 
+• Bit Operations--You can perform bit deposit, bit extraction, and bit shift operations. 
+• Pointers--Pointer variables can contain byte addresses or word addresses. You can use pointers to access locations throughout memory. You can initialize them when you declare them or at any time during program execution. 
+• Modular Prograrnrning--TAL supports modular programming with
+separate compilation and relocatable global data blocks. You can compile each module that contains one or more procedures as a separate compilation unit. The compile-time binder cooperates with the TAL compiler to build a bound object file from each module. 
+INTERFACE WITH OPERATING SYSTEM 
+Object programs run under the control of the GUARDIAN operating
+system. It provides an environment that allows your program to ignore many things such as the presence of other programs and whether your program fits into memory. For example, the operating system loads programs into memory, brings absent pages from disc into memory as needed, and allocates CPU time. 
+The operating system performs all file system functions for programs. It treats all devices as files including disc files, disc packs, terminals, printers, and processes running on the system. Programs 
+can reference a file by its symbolic name without regard for its physical address or configuration status. File system procedures provide a single, uniform file access method that masks the peculiarities of devices from applications. 
+Process control system procedures let processes activate and terminate other processes in any processor on the system. Processes can monitor the operation.of any process or processor. If a process stops or a processor fails, your program can determine this fact. 
+Operating system procedures are described in the System Procedure Calls Reference Manual and GUARDIAN Operating System Programmer's Guide. 
+1-4 
+Afil 82581 AOO 3/85 
+ 
+MACHINE DEPENDENCIES 
+The TAL compiler is a disc-resident program on each Tandem system and runs under the control of the GUARDIAN operating system. 
+For previous versions of the operating system, the same version of the TAL compiler executes on all Tandem systems. Operating system version BOO requires TAL compiler version BOO. Operating system version E08 requires TAL compiler version E08. 
+Certain features, such as extended pointers, extended data segments, user library segments, and multiple user code segments, are not available on the Nonstop 1+ system. A summary of machine dependencies appears in Appendix A. 
+SYSTEM REQUIREMENTS 
+Some object programs require optional microcode such as: 
+• Decimal arithmetic option for operations with quadword operands and arithmetic operations 
+• Floating-point option for doubleword and quadword (extended) floating-point arithmetic and related operations 
+Some object programs require other software products such as the PATHWAY transaction processing system. 
+PROGRAM DEVLOPMENT TOOLS 
+Other Tandem utilities that provide additional program development features are: 
+• EDIT--a full text editor with screen and conversational editing features, described in the EDIT Manual, that can help you create 
+TAL source programs 
+• CROSSREF--a process that creates a cross-reference listing of 
+variables, functions, and keywords in a program, either interactive process described in the CROSSREF Manual or 
+compiler-driven process as described in this manual 
+as an a 
+start 
+• INSPECT--an interactive debugger that lets you stop and program execution and display and modify program values symbolically as described in the INSPECT Interactive Symbolic Debugger User's Guide 
+/182581 AOO 3/85 
+INTRODUCTION Machine Dependencies 
+1-5 
+ 
+INTRODUCTION Compilation Cycle 
+• DEBUG--an interactive debugger that lets you stop and start
+program execution and display and modify program values by location as described in the DEBUG Manual 
+• BINDER--an interactive binder that lets you examine, modify and combine object files and produce optional load maps and cross-reference listings as described in the BINDER Manual 
+COMPILATION CYCLE 
+The object file is the output of the compiler or BINDER. The output of each compilation is an object program that is either an entire executable program or a part of a modular program. You can compile each part (module) of a program separately, then bind the resulting object files into a new object file called the target file. 
+Figures 1-2 and 1-3 show the compilation cycle of a nonmodular program and of a modular program, respectively. 
+Source Object Code ~1 TAL ~1 File 
+85013-002 
+Figure 1-2. Compilation Cycle of Nonmodular Program 
+1-6 
+~ 82581 AOO 3/85 
+ 
+Source Code 
+Source Code 
+Source Code 
+TAL 
+TAL 
+TAL 
+Interim Object File 
+Interim Object File 
+Interim Object File 
+Source Code 
+BIND 
+Target Object File 
+Target Object File 
+$5013-003 
+or 
+Figure 1-3. Compilation Cycle of Modular Program 
+EXAMPLE PROGRAM 
+Figure 1-4 shows an example of a TAL source program. The program opens the home terminal, then loops forever. Each iteration of the 
+loop consists of the following actions: 
+1. The program displays the prompt "ENTER STRING" and accepts a character string of up to 72 characters. 
+2. The program scans the input string for an asterisk. If one occurs, it displays a circumflex at the position of the asterisk. 
+~ 82581 AOO 3/85 
+1-7 
+TAL 
+INTRODUCTION Example Program 
+ 
+INTRODUCTION gxample Program 
+INT hometerm, left""side, 
+File number of home terminal
+sbuffer address of 1st character after prompt Number of bytes transferred by file system General-purpose variable
+Location of asterisk 
+1-8 
+-~ 82581 AOO 3/85 
+num""xferred,
+count,
+asterisk,
+buffer[0:40]; Input/output (I/O) buffer 
+STRING
+.sbuffer := @buffer '<<' 1, !STRING pointer to I/O buffer 
+blanks[0:71] := 72 * [" "]; !Blanks for initialization ?SOURCE $SYSTEM.SYSTEM.EXTDECS(MYTERM,OPEN,WRITEREAD,WRITE,STOP) 
+! Operating system procedure declarations 
+PROC main""proc MAIN; BEGIN 
+CALL MYTERM(buffer);
+CALL OPEN(buffer, hometerm); 
+WHILE 1 DO BEGIN 
+sbuffer ':= ' "ENTER STRING" ->
+CALL WRITEREAD(hometerm, buffer, 12, 68, num""xferred); 
+END; END; 
+sbuffer[numAxferred] := O;
+SCAN sbuffer UNTIL "*" -> asterisk; 
+IF NOT $CARRY THEN BEGIN 
+!Delimit the input !Scan for asterisk !Asterisk found 
+END; 
+
+When the current procedure invokes another procedure, the system automatically saves the current process environment. When the called procedure terminates, the system restores the environment of the previous procedure. Thus, each procedure executes in its own environment and is not affected by the actions of other procedures. 
+Each activation of a procedure has its own local data area. That is, the system allocates and initializes a new local data area each time a procedure is entered. When each activation completes 
+execution, it relinquishes its local data area. Thus, the memory space that a program requires is continuously held to a minimum. 
+Recursion--Because each activation of a procedure has its own local data area, a procedure can call itself. This feature, called 
+recursion, can enhance programming efficiency for certain applications. 
+Parameter Passing--You can declare optional or required parameters for procedures. 
+Subprocedures--A procedure can contain subprocedures, callable only from within the same procedure. Since each activation of a subprocedure has its own private data, subroutines can be recursive. 
+• 
+• 
+• 
+• 
+• 
+Six Data Types--You can declare and reference six types of data: 
+--STRING 
+--INT 
+--INT(32) 
+--FIXED 
+--REAL 
+--REAL(64) 
+8-bit integer byte 
+16-bit integer word 
+32-bit integer doubleword 
+64-bit fixed-point quadword 
+32-bit floating-point doubleword 
+64-bit floating-point quadword 
+• Data Structures--You can describe and reference sets of related data variables such as records and arrays. 
+..,. 82581 AOO 3/85 
+INTRODUCTION Major Features 
+1-3 
+ 
+INTRODUCTION
+Interface With Operating System 
+• Data Operations--You can move a contiguous group of words or bytes and compare one group with one another. You can scan a series of bytes for the first byte that matches (or fails to match) a given character. 
+• Bit Operations--You can perform bit deposit, bit extraction, and bit shift operations. 
+• Pointers--Pointer variables can contain byte addresses or word addresses. You can use pointers to access locations throughout memory. You can initialize them when you declare them or at any time during program execution. 
+• Modular Prograrnrning--TAL supports modular programming with
+separate compilation and relocatable global data blocks. You can compile each module that contains one or more procedures as a separate compilation unit. The compile-time binder cooperates with the TAL compiler to build a bound object file from each module. 
+INTERFACE WITH OPERATING SYSTEM 
+Object programs run under the control of the GUARDIAN operating
+system. It provides an environment that allows your program to ignore many things such as the presence of other programs and whether your program fits into memory. For example, the operating system loads programs into memory, brings absent pages from disc into memory as needed, and allocates CPU time. 
+The operating system performs all file system functions for programs. It treats all devices as files including disc files, disc packs, terminals, printers, and processes running on the system. Programs 
+can reference a file by its symbolic name without regard for its physical address or configuration status. File system procedures provide a single, uniform file access method that masks the peculiarities of devices from applications. 
+Process control system procedures let processes activate and terminate other processes in any processor on the system. Processes can monitor the operation.of any process or processor. If a process stops or a processor fails, your program can determine this fact. 
+Operating system procedures are described in the System Procedure Calls Reference Manual and GUARDIAN Operating System Programmer's Guide. 
+1-4 
+Afil 82581 AOO 3/85 
+ 
+MACHINE DEPENDENCIES 
+The TAL compiler is a disc-resident program on each Tandem system and runs under the control of the GUARDIAN operating system. 
+For previous versions of the operating system, the same version of the TAL compiler executes on all Tandem systems. Operating system version BOO requires TAL compiler version BOO. Operating system version E08 requires TAL compiler version E08. 
+Certain features, such as extended pointers, extended data segments, user library segments, and multiple user code segments, are not available on the Nonstop 1+ system. A summary of machine dependencies appears in Appendix A. 
+SYSTEM REQUIREMENTS 
+Some object programs require optional microcode such as: 
+• Decimal arithmetic option for operations with quadword operands and arithmetic operations 
+• Floating-point option for doubleword and quadword (extended) floating-point arithmetic and related operations 
+Some object programs require other software products such as the PATHWAY transaction processing system. 
+PROGRAM DEVLOPMENT TOOLS 
+Other Tandem utilities that provide additional program development features are: 
+• EDIT--a full text editor with screen and conversational editing features, described in the EDIT Manual, that can help you create 
+TAL source programs 
+• CROSSREF--a process that creates a cross-reference listing of 
+variables, functions, and keywords in a program, either interactive process described in the CROSSREF Manual or 
+compiler-driven process as described in this manual 
+as an a 
+start 
+• INSPECT--an interactive debugger that lets you stop and program execution and display and modify program values symbolically as described in the INSPECT Interactive Symbolic Debugger User's Guide 
+/182581 AOO 3/85 
+INTRODUCTION Machine Dependencies 
+1-5 
+ 
+INTRODUCTION Compilation Cycle 
+• DEBUG--an interactive debugger that lets you stop and start
+program execution and display and modify program values by location as described in the DEBUG Manual 
+• BINDER--an interactive binder that lets you examine, modify and combine object files and produce optional load maps and cross-reference listings as described in the BINDER Manual 
+COMPILATION CYCLE 
+The object file is the output of the compiler or BINDER. The output of each compilation is an object program that is either an entire executable program or a part of a modular program. You can compile each part (module) of a program separately, then bind the resulting object files into a new object file called the target file. 
+Figures 1-2 and 1-3 show the compilation cycle of a nonmodular program and of a modular program, respectively. 
+Source Object Code ~1 TAL ~1 File 
+85013-002 
+Figure 1-2. Compilation Cycle of Nonmodular Program 
+1-6 
+~ 82581 AOO 3/85 
+ 
+Source Code 
+Source Code 
+Source Code 
+TAL 
+TAL 
+TAL 
+Interim Object File 
+Interim Object File 
+Interim Object File 
+Source Code 
+BIND 
+Target Object File 
+Target Object File 
+$5013-003 
+or 
+Figure 1-3. Compilation Cycle of Modular Program 
+EXAMPLE PROGRAM 
+Figure 1-4 shows an example of a TAL source program. The program opens the home terminal, then loops forever. Each iteration of the 
+loop consists of the following actions: 
+1. The program displays the prompt "ENTER STRING" and accepts a character string of up to 72 characters. 
+2. The program scans the input string for an asterisk. If one occurs, it displays a circumflex at the position of the asterisk. 
+~ 82581 AOO 3/85 
+1-7 
+TAL 
+INTRODUCTION Example Program 
+ 
+INTRODUCTION gxample Program 
+INT hometerm, left""side, 
+File number of home terminal
+sbuffer address of 1st character after prompt Number of bytes transferred by file system General-purpose variable
+Location of asterisk 
+1-8 
+-~ 82581 AOO 3/85 
+num""xferred,
+count,
+asterisk,
+buffer[0:40]; Input/output (I/O) buffer 
+STRING
+.sbuffer := @buffer '<<' 1, !STRING pointer to I/O buffer 
+blanks[0:71] := 72 * [" "]; !Blanks for initialization ?SOURCE $SYSTEM.SYSTEM.EXTDECS(MYTERM,OPEN,WRITEREAD,WRITE,STOP) 
+! Operating system procedure declarations 
+PROC main""proc MAIN; BEGIN 
+CALL MYTERM(buffer);
+CALL OPEN(buffer, hometerm); 
+WHILE 1 DO BEGIN 
+sbuffer ':= ' "ENTER STRING" ->
+CALL WRITEREAD(hometerm, buffer, 12, 68, num""xferred); 
+END; END; 
+sbuffer[numAxferred] := O;
+SCAN sbuffer UNTIL "*" -> asterisk; 
+IF NOT $CARRY THEN BEGIN 
+!Delimit the input !Scan for asterisk !Asterisk found 
+END; 
+
+PROGRAM COMPONENTS 
+Program components are parts of the source program that define objects and specify operations on these objects. The primary components of a nonmodular program are: 
+• Global Declarations 
+• Procedure Declarations 
+• Local Declarations 
+• Subprocedure Declarations 
+• Sublocal Declarations 
+• Statements 
+Af'82581 AOO 3/85 
+2-1 
+PROGRAM STRUCTURE Program Components 
+Each primary component in turn can contain other components such as variables, pointers, numeric constants, character strings, reserved words, operators, delimiters, and other symbols. These are discussed 
+in later sections. 
+Global Declarations 
+Global declarations define identifiers you can reference throughout the program. Global identifiers are accessible for the duration of the compilation. 
+Declarations that can have global scope are: 
+• Data Declarations--These associate identifiers with memcry locations and allocate memory for storing values and the results of computations. 
+• LITERAL Declarations--These associate constant values with identifiers. 
+• DEFINE Declarations--These associate text with identifiers. 
+• FORWARD Procedure Declarations--These specify that the declaration for the procedure body occurs later in the source file. 
+• EXTERNAL Procedure Declarations--These specify that the declaration for the procedure body occurs in another compilation. 
+Procedure Declarations 
+Procedure declarations specify discrete portions of source code within a program. They define the executable parts of the program. 
+A procedure can contain local declarations and subprocedure declarations. 
+2--2 
+-'1J82581 AOO 3/85 
+Local Declarations 
+Local identifiers are accessible only during execution of the encompassing procedure. They can be accessed only by statements and subprocedures within the procedure in which they are declared, unless the procedure passes them as parameters to another procedure. 
+Declarations that can have local scope are: 
+• Data Declarations 
+• LITERAL Declarations 
+• DEFINE Declarations 
+• Label Declarations--These reserve identifiers for later use as names of locations in the procedure. 
+• Entry-Point Declarations--These specify additional entry points into a procedure or subprocedure body. 
+• FORWARD Subprocedure Declarations--These specify that the declaration for the subprocedure body occurs later in the same procedure. 
+The system allocates and initializes a separate local data area for each activation of a procedure. When each activation completes execution, the system deallocates its local data area. 
+Subprocedure Declarations 
+Subprocedure declarations specify discrete blocks of source code within a procedure. A procedure can contain any number of subprocedures, all nested at the same level. 
+A subprocedure can contain sublocal declarations, but it cannot contain other subprocedures. 
+4J82581 AOO 3/85 
+2-3 
+PROGRAM STRUCTURE Program Components 
+PROGRAM STRUCTURE Program Components 
+Sublocal Declarations 
+Sublocal declarations define identifiers that are accessible only during execution of the encompassing subprocedure. Sublocal 
+identifiers can be accessed only by statements within the subprocedure, unless the subprocedure passes them as parameters to another subprocedure or procedure. 
+Declarations that can have sublocal scope are: 
+• Data Declarations 
+• LITERAL Declarations 
+• DEFINE Declarations 
+• Label Declarations 
+• Entry-Point Declarations 
+The system allocates and initializes a separate sublocal data area for each activation of a subprocedure. When each activation completes execution, the system deallocates its sublocal data area. 
+Statements 
+Statements request specific actions. Local statements appear within a procedure. Sublocal statements appear within a subprocedure. 
+Local statements in a procedure can invoke any procedure previously declared in the program and any subprocedure previously declared within the same procedure. They can reference global identifiers and 
+local identifiers in this procedure but not those in other procedures or in subprocedures. 
+Sublocal statements in a subprocedure can invoke any procedure previously declared in the program, or any subprocedures previously declared within the same procedure. They can reference global 
+identifiers, local identifiers in the encompassing procedure, and sublocal identifiers in this subprocedure but not those declared in other subprocedures. 
+2--4 
+.,,, 82581 AOO 3/85 
+, 
+PROGRAM STRUCTURE 
+The TAL compiler expects source declarations and statements in the following order: 
+1.	All global declarations must appear before the first procedure declaration. 
+2.	A procedure declaration comes next. 
+3.	All local declarations for this procedure come next. 
+4.	A subprocedure declaration, if any, appears next, followed in order by: 
+--All sublocal data declarations for this subprocedure 
+--All sublocal statements for this subprocedure 
+5.	For each subsequent subprocedure, the primary components listed in item 4, if present, appear in the order given 
+6.	All local statements for the encompassing procedure follow the last subprocedure contained in this procedure. If no subprocedures appear in this procedure, all local statements follow the local data declarations for this procedure. 
+7.	For each subsequent procedure, the primary components listed in items 2 through 6, if present, must appear in the order given. 
+You must declare procedures and subprocedures before you reference them in statements unless you use FORWARD declarations. For further information, see Section 16, "Procedures and Subprocedures." 
+Figure 2-1 shows the structure of a nonmodular program that has three procedures, one of which contains a subprocedure. 
+In the figure, the scope of the declarations in each box is inward only. That is, global data is accessible to all items in the program. Local data is accessible only to items in the procedure in which it appears. Sublocal data is accessible only to items within the subprocedure in which it appears. 
+-'182581 AOO 3/85 
+PROGRAM STRUCTURE Program Structure 
+2-5 
+PROGRAM STRUCTURE Program Structure 
+.----------------------------------------------·-------- 
+2-·6 
+Global Declarations 
+Procedure Declaration 
+Local Declarations 
+Subprocedure Declarations 
+Sublocal Declarations 
+Sublocal Statements 
+Local Statements 
+Procedure Declaration 
+Local Declarations 
+Local Statements 
+MAIN Procedure Declaration 
+Local Declarations 
+Local Statements 
+Figure 2-1. Structure of a Nonmodular Source Program 
+S5013-004 
+Afj182581 AOO 3/85 
+1 
+MODULAR PROGRAMMING 
+Modular programming provides several advantages. For example, it allows you: 
+•	To divide a large program into smaller, more manageable modules 
+•	To work independently on a module, while other programmers work on other modules 
+•	To bind new code to existing debugged object code including general-purpose library routines 
+•	To code different procedures for the same program in different languages 
+Compiler and binder support for modular programming is described in Section 22, "Separate Compilation." The differences between 
+modular programs and nonmodular programs are summarized below. 
+Modules can have the f~llowing additional components: 
+•	NAME Declaration--This declaration assigns a name to the module. 
+•	BLOCK Declarations--These group global data declarations into relocatable global data blocks. Each module can have one private data block and any number of user-named data blocks. The private block is global only to that module. The named blocks are global 
+to all modules in the program. 
+Any global data declarations not contained in a BLOCK declaration must appear before the first BLOCK declaration. TAL treats the unblocked declarations as an implicit data block that is global to all modules 
+in the program. 
+Modular Structure 
+The structure of a source module is shown in Figure 2-2. The NAME, unblocked, and BLOCK declarations, if present, must appear in the order shown in the figure. 
+..,. 82581 AOO 3/85 
+PROGRAM STRUCTURE Modular Structure 
+2-7 
+PROGRAM STRUCTURE Modular Structure 
+NAME Declaration 
+Unblocked Global Declarations (Implicit Data Block) 
+BLOCK Declarations (Private Block and Named Blocks) 
+Procedure Declaration 
+Local Declarations 
+Subprocedure Declarations 
+Sublocal Declarations 
+Sublocal Statements 
+Local Statements 
+._------------------------------~----------------------- 
+2--8 
+Procedure Declaration 
+Local Declarations 
+Local Statements 
+--------------------------------·----------------- 
+MAIN Procedure Declaration 
+Local Declarations 
+Local Statements 
+Figure 2-2. Structure of a Source Module 
+S5013-005 
+--------··-----· 
+"'182581 AOO 3/85 
+SECTION 3 
+LEXICAL ELEMENTS 
+This section describes the format you can use for source code and lists the lexical elements that make up the TAL language. 
+Elements include the character set supported, components, reserved words, identifiers, constants, variables, indirection symbols, address base symbols, delimiters, and operators. 
+FORMAT OF SOURCE CODE 
+The maximum line length is 132 characters. 
+TAL allows almost a free format for source code. This flexibility lets you design a format that is readable and maintainable. The 
+following 
+INT 
+STRING 
+example shows a legal format: 
+a,
+b,
+c: charl, char2, char3; 
+PROC formatAexample MAIN; BEGIN 
+a := 1;
+b := 2:
+c := a + b; charl := "A"; char2 := "B"; char3 := "C"; 
+END; 
+4l82581 AOO 3/85 
+3-1 
+LEXICAL ELEMENTS Format of Source Code 
+BEGIN-END Construct 
+The BEGIN-END construct is an integral part of the TAL language. For example: 
+• It encloses the body of a procedure, as in the following example: 
+PROC a ; BEGIN 
+END; 
+• It forms a compound statement, as in the following example: 
+IF a < b THEN BEGIN 
+END ELSE 
+Comments 
+BEGIN 
+END; 
+Comments begin with an exclamation point (!) and terminate with either another exclamation point or the end of the line. Valid examples are: 
+CALL calc; !Comment CALL calc; ! Comment 
+! Comment
+!Comment! CALL !Comment! calc; !Comment! 
+CHARACTER SET 
+TAL supports the complete ASCII character set including uppercase and lowercase alphabetics, numerics 0 through 9, and special characters. The ASCII character set appears in Appendix E. 
+3--2 
+_.,, 82581 AOO 3/85 
+COMPONENTS 
+TAL program components consist of declarations and statements. 
+• Declarations associate identifiers with data variables and other declarable objects in a program: 
+--Variable objects such as simple variables, arrays, structures, pointers, and equivalenced variables 
+--Other objects such as procedures, literals, defines, labels, and entry points 
+• Statements specify operations to be performed on declared objects. Statements are summarized in Table 3-1 and described in Section 15. 
+Table 3-1. TAL Statements 
+Statement Meaning 
+ASSERT Conditionally calls error-handling procedure. Assignment Stores value in variable.
+CALL Invokes procedure or subprocedure.
+CASE Executes statement based on index value. 
+CODE Specifies machine codes for inclusion in object code. DO-UNTIL Executes posttest loop until true condition.
+DROP Frees index register or removes label from symbol table. FOR-DO Executes pretest loop for <n> times. 
+GOTO Unconditionally branches to label within procedure or subprocedure. 
+Move Moves group of elements from one location to another. IF-THEN-ELSE Executes THEN statement for true state or ELSE statement 
+RETURN 
+RSCAN SCAN STACK STORE USE WHILE-DO 
+for false state.
+Returns from procedure or subprocedure to caller. For functions, also can specify returned value.
+Searches scan area, right to left, for test character. Searches scan area, left to right, for test character. Loads value on register stack.
+Stores register stack element in variable.
+Reserves index register for user manipulation.
+Executes pretest loop during TRUE condition. 
+'1'82581 AOO 3/85 
+3-3 
+LEXICAL ELEMENTS Components 
+LEXICAL ELEMENTS Reserved Words 
+RESERVED WORDS 
+Reserved words are keywords that have predefined meanings when you use them in declarations and statements. Table 3-2 lists the reserved words in alphabetic order. You cannot use reserved words for user-defined identifiers unless noted otherwise below. 
+3-4 
+AND ASSERT BEGIN BLOCK * BY 
+CALL CALLABLE CASE CODE DEFINE DO DOWNTO DROP ELSE 
+Table 3-2. Reserved Words 
+END LITERAL ENTRY LOR 
+RS CAN SCAN S'I'ACK S'I'ORE S'I'RING ST'RUCT SUBPROC THEN 
+TO
+UNTIL USE
+VP.RI ABLE WHILE XOR 
+EXTENSIBLE ** EXTERNAL FILLER *** FIXED 
+FOR FORWARD GOTO
+IF
+INT INTERRUPT LABEL LAND 
+MAIN NAME * NOT
+OF 
+OR OTHERWISE PRIV PRIVATE * PROC
+REAL RESIDENT RETURN 
+* NAME is reserved only when used in the first declaration in a compilation unit. BLOCK and PRIVATE are reserved in a named compilation unit. In an unnamed compilation unit, you cannot declare data blocks using BLOCK declarations, but you can use BLOCK and PRIVATE as user-defined identifiers. For details, see Section 22, "Separate Compilations." 
+** EXTENSIBLE is a procedure attribute, as described in Section 16, "Procedures and Subprocedures." However, you can also use EXTENSIBLE as a user-defined identifier. 
+*** FILLER is a reserved word only within the scope of a structure declaration, as described in Section 11, "Structures." 
+1182581 AOO 3/85 
+IDENTIFIERS 
+Identifiers are symbolic names you use for objects in declarations and statements. The following rules apply when forming identifiers: 
+• They can be up to 31 characters in length. 
+• They must begin with an alphabetic character or a circumflex (A). 
+• They can consist only of alphabetics, numerics, and circumflexes. 
+• You can use lowercase characters, but TAL treats them as uppercase. 
+The following examples show valid identifiers: 
+a2 numberAofAbytes 
+A 
+TANDEM
+A23456789012AOO NameAwithAexactlyA31Acharacters 
+The following examples show invalid identifiers: 
+2abc !Begins with number ab%99 ! Illegal symbol Variable !Reserved word ThisAnameAisAtooAlongAsoAitAisAinvalid !Too long 
+Identifier Classes 
+Each identifier is a member of an identifier class. TAL determines the identifier class based on the declaration of the identifier and stores the information in the symbol table. 
+Table 3-3 summarizes the identifier classes and the sections in this manual in which each class is described. 
+-'if 82581 AOO 3/85 
+3-5 
+LEXICAL ELEMENTS Identifiers 
+LEXICAL ELEMENTS Constants 
+Class 
+Block Code Constant Variable 
+DEFINE Function Label LITERAL PROC Register Template 
+CONSTANTS 
+Table 3-3. Identifier Classes 
+Meaning 
+Global data block
+Read-only (P-relative) array
+Unnamed numeric or character string constant Simple variable, array, pointer, structure, substructure, or structure data item
+Named text
+Procedure or subprocedure with a return value Statement label
+Named constant
+Procedure or subprocedure with no return value Index register (R5, R6, or R7) (See USE statement) Structure template 
+Section 
+22 
+9 
+4 8-11 
+6 16 7 6 16 15 11 
+A constant is a value you can store in a variable, declare as a LITERAL, or use as part of an expression. Constants can be numbers or character strings. The kind and size of constants a variable can accommodate depends on the data type of the variable, as de?scribed in Section 4, "Data Representation." 
+A constant expression is an arithmetic expression that contains no variables. You can use a constant expression anywhere a single constant is allowed. 
+The following are examples of constants and constant expressions: 
+3-6 
+255 "xyz" 2 * 5 
+!Numeric constant !Character string constant !Constant expression 
+1182581 AOO 3/85 
+Number Bases 
+You can specify numeric constants in binary, octal, decimal, or hexadecimal base depending on the data type of the item, as described in Section 4. Examples are: 
+Binary: %8101111 Octal: %57 Decimal: 47 Hexadecimal: %H2F 
+VARIABLES 
+A variable is a symbolic representation of an item or a group of elements. It stores data that can change during program execution. Table 3-4 summarizes variables. 
+Table 3-4. Variables 
+Variable Meaning Section 
+Simple Variable 
+Array 
+Structure 
+A variable that contains one item of a specified 8 data type 
+A variable that contains multiple elements of the 9 same data type, all accessible by one identifier 
+A variable that contains multiple elements of one 11 or more data types, all accessible by one identifier 
+Substructure A structure declared within another structure or 11 substructure 
+Structure data item 
+Pointer 
+An array or simple variable declared within a 11 structure or substructure 
+A variable that contains the address of another item 10 of a specified data type; referencing a pointer
+accesses the item to which the pointer points 
+-'182581 AOO 3/85 
+LEXICAL ELEMENTS Variables 
+3-7 
+LEXICAL ELEMENTS Symbols and Operators 
+SYMBOLS AND OPERATORS 
+Symbols are indirection symbols, address base symbols, prefix symbols, and delimiters (punctuation symbols): 
+• Indirection symbols are the period (.), .EXT, .SG, and@, as summarized in Table 3-5. 
+• Address base symbols are 'SG', 'P', 'G', 'L', and 'S', as summarized in Table 3-6. 
+• Delimiters start or end a field of information as summarized in Table 3-7. 
+• Other symbols are "$" and "?", as follows: 
+$ --specifies a standard function, such as $ABS and $DBL, as described in Section 17. 
+? --specifies a directive line that contains one or more compiler directives, as described in Section 20. 
+Operators specify assignment, move, bit shift, arithmetic, boolean, and relational operations, as summarized in Table 3-8. 
+3--8 
+4J82581 AOO 3/85 
+LEXICAL ELEMENTS Indirection and Base Address Symbols 
+Table 3-5. Indirection Symbols 
+Symbol Meaning Section 
+Declares indirect array (standard indirection) 9 Declares indirect structure (standard indirection 11 Declares 16-bit standard pointer 10 Declares 16-bit standard structure pointer 11 Uses direct INT variable as a temporary pointer 10 
+@ Removes indirection (accesses address contained in
+pointer or address of any other item) 10 
+.EXT Declares 32-bit extended pointer 10 Declares 32~bit extended structure pointer 11 
+.SG Declares 16-bit system global pointer 18 Declares 16-bit system global structure pointer 18 
+Table 3-6. Address Base Symbols 
+Symbol Meaning Section 
+'P' P-register addressing (read-only array declaration) 9 
+'G' Base-address equivalencing, global user data area 12 
+'L' Base-address equivalencing, local user data area 12 
+'S' Base-address equivalencing, sublocal user data area 12 
+'SG' Base address, system global space (privileged
+procedures) 18 
+""182581 AOO 3/85 
+3-9 
+LEXICAL ELEMENTS Delimiters 
+3-10 
+~ 82581 AOO 3/85 
+Table 3-7. Delimiters 
+Symbol Meaning Section 
+<:> 
+() 
+( *) 
+* [] 
+[:] 
+-> 
+"" 
+"" # 
+Begins and optionally ends a comment 3 
+Separates fields of information
+Constant lists 4 Declarations 6-12 Parameters (DEFINEs, procedures, 6,16 
+standard functions, CALL statements) 17,15 
+Terminates declarations 6-12 Separates statements 15 
+Word.<bit> specification 14 Structure name qualification 11 
+Bit field 4,14 
+Label, ASSERT statement, entry point 7,15,16 
+Expression precedence 13 CODE statement 15 Parameters (DEFINES, procedures, 6,16 
+standard functions, CALL statements) 17,15 Structure pointer referral mode 11 FIXED (<fpoint>) 8 
+FIXED (*) formal parameter specification 16 Template structure declaration 11 
+Repetition factor 4 Constant list; index; array element 4,5,9 
+Array bounds 9 Structure or substructure bounds 11 
+<next-addr> in SCAN, RSCAN, move statements 15 <next-addr> in group comparison expression 13 
+Begins and ends character strings 4 Embedded quotation mark in character strings 4 Terminates DEFINE declaration text 6 Embedded comma in DEFINE parameter 6 
+Assignment := 
+Representation = 
+Move r:=r r_.r 
+Data declaration initialization 8-11 Assignment and FOR statements 15 Assignment form of arithmetic expression 13 
+LITERAL or DEFINE declaration 6 Equivalenced variable declaration 12 Redefinitions inside structures 11 
+Left-to-right move 15 Right-to-left move 
+Signed left shift 14 Signed right shift
+Unsigned left shift
+Unsigned right shift 
+Signed addition 13 Signed subtraction
+Signed multiplication
+Signed division 
+Unsigned addition
+Unsigned subtraction
+Unsigned multiplication Unsigned division
+Unsigned modulo division Logical OR bit-wise operation Logical AND bit-wise operation Exclusive OR bit-wise operation 
+Logical conjunction 13 Logical disjunction
+Logical negation 
+Signed less than 13 Signed equal to
+Signed greater than
+Signed less than or equal to 
+Signed greater than or equal to Signed not equal to
+Unsigned less than
+Unsigned equal to 
+Unsigned greater than
+Unsigned less than or equal to Unsigned greater than or equal to Unsigned not equal to 
+Bit Shift 
+-. 
+<< >> 
+'<<' '>>' 
+Arithmetic + 
+* 
+I 
+r+r r-' 
+r *' r/' r\r 
+LOR LAND XOR 
+Boolean AND OR 
+NOT 
+Relational < = > 
+<= >= <> 
+r<r r=r
+r >' '<=' 
+'>=' '<>' 
+Af'82581 AOO 3/85 
+Table 3-8. Operators 
+Operation Operator Meaning Section 
+LEXICAL ELEMENTS Operators 
+3-11 
+SECTION 4 
+DATA REPRESENTATION 
+Data is the information on which a program operates. 
+Variables store data that can change during program execution. When you declare a variable, you specify a data type, which determines its storage, range of values and precision, and the way it can be used in a program. 
+This section describes the following: 
+• Data units in which you can access variables 
+• Data types for variables and constants 
+• Syntax for character string constants, numeric constants, and constant lists 
+DATA UNITS 
+Data units are the formats in which you can access data stored in memory. The system stores all data in 16-bit word units, but you can access this data as any of the five units listed in Table 4-1. 
+"182581 AOO 3/85 
+4-1 
+DATA REPRESENTATION Data Units 
+Number Data Unit of Bits 
+Bit field 1-16 
+Byte 8 
+Word 16 
+Doubleword 32 
+Quadword 64 
+Bit Fields 
+Table 4-1. Data Units 
+Description 
+One or more contiguous bits within a word 
+Two bytes comprise a word, with byte 0 (most significant) in the left half and byte 1 (least significant) in the right half 
+Basic addressable unit of memory 
+Four contiguous bytes or two contiguous words 
+Eight contiguous bytes or four contiguous words 
+A bit field specifies one or more contiguous bits in a data unit by bit number. For a word unit, the bit numbers are 0 through 15 from left to right, as shown in Figure 4-1. 
+0 1 2 3 4 5 6 7 8 9101112131415 
+IIIIIIIIIIIIIIIII 
+4--2 
+Most Significant 
+Least Significant 
+55013-006 
+Figure 4-1. Bit Field 
+For a one-bit field, specify the bit number enclosed in angle brackets, as in <O>, <7>, or <14>. 
+For a multiple-bit field, specify the leftmost and rightmost bit numbers of the field separated by a colon and enclosed in angle brackets, as in <2:3>, <0:7>, or <4:15>. 
+'1'' B2581 AOO 3/85 
+DATA TYPES 
+The data type of a variable determines the values it can represent, the operations you can perform on it, byte or word addressing and alignment, data length, indexing offsets, and kind of machine instructions generated. 
+Data can be character strings or numbers. Table 4-2 shows the six data types and the numeric range each represents. 
+Data Type 
+STRING 
+INT 
+INT(32) 
+FIXED 
+REAL 
+REAL(64) 
+Address Modes 
+Data Unit 
+Byte 
+Word 
+Doubleword 
+Quadword 
+Doubleword 
+Quadword 
+Table 4-2. Data Types 
+Number Representation 
+ASCII character or 8-bit integer
+in the range 0 through 255 unsigned 
+16-bit integer in the range
+0 through 65,535 unsigned or -32,768 through 32,767 signed 
+32-bit integer in the range -2,147,483,648 through +2,147,483,647 
+64-bit fixed-point number in the range -9,223,372,036,854,775,808 through +9,223,372,036,854,775,807 
+32-bit floating-point number 
+64-bit floating-point number 
+REAL and REAL(64) data are in the range -78 78 
++/-8.62 * 10 
+through +/-1.16 * 10 
+The data type of a variable determines byte or word addressing, alignment, and indexing, as discussed in Section 5, "Addressing 
+Modes." 
+/1'82581 AOO 3/85 
+DATA REPRESENTATION Data Types 
+4-3 
+DATA REPRESENTATION Data Types 
+Q~rations and Functions 
+The data type of a variable determines the operations you can perform on it and the standard functions you can use with it, as shown in Table 4-3. 
+Table 4-3. Operations and Functions 
+Operations
+Unsigned arithmetic Signed arithmetic Logical operations Relational operations Bit shifts
+Byte scans 
+Standard Functions rype transfer Character test Minimum/Maximum Scaling
+Structure
+Address conversion Miscellaneous 
+STRING INT INT(32) FIXED REAL REAL(64) 
+••
+•• • •* •** •** 
+••
+•• • •* •** •** 
+••• • 
+•••••• • 
+• • • 
+•* •** •** 
+• •••••• 
+•••••• ••• 
+* Fixed-point optional microcode required on the Nonstop 1+ system ** Floating-point optional microcode required 
+STRING Operands 
+In expressions, the system treats STRING variables and constants as if they were 16-bit quantities. For more information on expressions, 
+see Section 13. 
+4-·4 
+~ 82581 AOO 3/85 
+SYNTAX FOR CONSTANTS 
+The remaining pages of this section give the following syntax definitions for specifying constants in your program: 
+Character String Constants (All Data Types) 
+STRING Numeric Constants 
+INT Numeric Constants 
+INT(32) Numeric Constants 
+FIXED Numeric Constants 
+REAL and REAL(64) Numeric Constants 
+Constant Lists 
+• • • • • • • 
+Af'82581 AOO 3/85 
+4-5 
+DATA REPRESENTATION Syntax for Constants 
+DATA REPRESENTATION
+Character String Constants (All Data Types) 
+Character String Constants (All Data Types) 
+A character string consists of one or more ASCII characters stored in a contiguous group of bytes. 
+The syntax for specifying a character string constant is: 
+"<string>" 
+<string> 
+is a sequence of one or more ASCII characters enclosed in quotation mark delimiters. If a quotation mark is a character within the string, use two quotation marks (in addition to the quotation mark delimiters). TAL does not upshift lower case characters. 
+Each ASCII character in the character string requires one byte of storage. Thus, the number of characters that each element can accommodate depends on its data type: 
+STRING = 1 byte INT(32) or REAL = 1 to 4 bytes INT = 1 to 2 bytes REAL(64) or FIXED 1 to 8 bytes 
+In initializations, a character string can contain up to 128 characters. The character string must be on one line unless enclosed in a constant list, described later in this section. The system left 
+justifies the character string. For examples initializing simple variables and arrays with character strings, see Sections 8 and 9. 
+In expressions, a character string can contain one to four characters, as in "a" or "abed". The system right justifies the character string. For examples, see "Assignment Statement" in Section 15. 
+Example of Character String Constant 
+This example declares a FIXED variable and initializes it with a character string: 
+FIXED fixAnum := "ABCD1234"; 
+4-6 
+·-'IJ82581 A00 3I85 
+STRING Numeric Constants 
+Representation: Unsigned 8-bit integer 
+Range: 0 through 255 
+The syntax for specifying a STRING numeric constant is: 
+[ <base> ] <integer> 
+<base> 
+is one of: 
+% = Octal
+%B Binary
+%H Hexadecimal 
+The default base is decimal. 
+<integer> 
+is one or more digits. The digits allowed are: 
+Binary 0 or 1
+Decimal 0 through 9
+Hexadecimal 0 through 9, A through F Octal 0 through 7 
+Examples of STRING Numeric Constants 
+Decimal: 255 Octal: %12 Binary: %B101 Hexadecimal: %h2A 
+-'182581 AOO 3/85 
+DATA REPRESENTATION STRING Numeric Constants 
+4-7 
+DATA REPRESENTATION INT Numeric Constants 
+INT Numeric Constants 
+Representation: Signed or unsigned 16-bit integer 
+Range (Unsigned): 0 through 65,535 
+Range (Signed): -32,768 through 32,767 
+'rhe syntax for specifying an INT numeric constant is: 
+[ + ] [ <base> ] <integer> [-] 
+<base> 
+is one of: 
+% = Octal
+%B = Binary
+%H = Hexadecimal 
+The default base is decimal. Unsigned integers greater than 32,767 must be in octal, binary, or hexadecimal base. 
+<integer> 
+is one or more digits. The digits allowed for each base are: 
+4-8 
+Binary Decimal Hexadecimal Octal 
+0 or 1
+0 through 9
+0 through 9, A through F 0 through 7 
+Aft82581 AOO 3/85 
+Examples of INT Numeric Constants 
+Decimal: 3 -32045 
+Octal: %177 -%5 
+Binary: %801010 %b1001111000010001 
+Hexadecimal: %H1A %h2f 
+Storage Format 
+The system stores signed numbers in two's complement notation. It obtains the negative of a number by inverting each bit position in the number, then adding a 1. For example: 
+2 is stored as 0000000000000010 
+-2 is stored as 1111111111111110 
+/f82581 AOO 3/85 
+4-9 
+DATA REPRESENTATION INT Numeric Constants 
+DATA REPRESENTATION INT(32) Numeric Constants 
+INT(32) Numeric Constants 
+Representation: Signed or unsigned 32-bit integer 
+Range: -2,147,483,648 through 2,147,483,647 
+The syntax for specifying an INT(32) numeric constant is: 
+-------·-------·----- 
+[ + ] [ <base> ] <integer> { D } 
+4-10 
+AP82581 A00 3I85 
+[ - ] 
+<base> 
+is one of: 
+% = Octal
+%B = Binary
+%H = Hexadecimal 
+{ %D } 
+The default base is decimal. 
+<integer> 
+is one or more digits. The digits allowed for each base are: 
+Binary Decimal Hexadecimal Octal 
+D and %D 
+0 or 1
+0 through 9
+0 through 9, A through F 0 through 7 
+are suffixes that specify INT(32) constants: 
+D = Decimal, octal, or binary %D Hexadecimal 
+Examples of INT(32) Numeric Constants 
+Decimal: OD +14769 D 
+-327895066d 
+Octal: %1707254361d -%24700000221D 
+Binary: %B000100101100010001010001001d 
+Hexadecimal: %h096228d%d -%H99FF29%D 
+Storage Format 
+The system stores signed numbers in two's complement notation. 
+~ 82581 AOO 3/85 
+4-11 
+DATA REPRESENTATION INT(32) Numeric Constants 
+DATA REPRESENTATION FIXED Numeric Constants 
+FIXED Numeric Constants 
+Representation: Signed 64-bit fixed-point number 
+Range: -9,223,372,036,854,775,808 through +9,223,372,036,854,775,807 
+The syntax for specifying a FIXED numeric constant is: 
+[ + [ <base> ] <integer> [.<fraction>] { F } [ - { %F } 
+<base> 
+is one of: 
+% Octal base
+%B = Binary base
+%H = Hexadecimal base 
+The default base is decimal. 
+<integer> 
+is one or more digits. The digits allowed for each base are: 
+4·-12 
+'1'82581 AOO 3/85 
+Binary Decimal Hexadecimal Octal 
+<fraction> 
+0 or 1
+0 through 9
+0 through 9, A through F 0 through 7 
+is one or more decimal digits. <fraction> is legal only for decimal base. 
+F and %F 
+are suffixes that specify FIXED constants: 
+F Decimal, octal, or binary %F Hexadecimal 
+Examples of FIXED Numeric Constants 
+Decimal: 1200.09F 0.1234567F 
+239840984939873494F -10.09F 
+Binary: %B1010111010101101010110F 
+Octal: %765235512F 
+Hexadecimal: %H298756%F 
+Storage Format 
+The system stores a FIXED number in binary notation. When the system stores a FIXED number, it scales the constant as dictated by the declaration or expression. Scaling means the system multiplies or divides the constant by powers of 10 to move the decimal. 
+For information on scaling of FIXED values in declarations, see Section 8, "Simple Variables." For information on scaling of FIXED values in expressions, see Section 13, "Expressions." 
+-'1f 82581 AOO 3/85 
+DATA REPRESENTATION FIXED Numeric Constants 
+4-13 
+DATA REPRESENTATION
+REAL and REAL(64) Numeric Constants 
+REAL and REAL(64) Numeric Constants 
+Representation: Signed 32-bit REAL or 64-bit REAL(64) floating-point number 
+REAL(64)--to approximately 17 significant digits 
+The syntax for specifying a REAL or REAL(64) numeric constant is: 
+[ + ] <integer>.<fraction> { E } [ + ] <exponent> [-] {L}[-] 
+<integer> 
+is one or more decimal digits comprising the integer part. 
+<fraction> 
+is one or more decimal digits comprising the fractional part. 
+E and L 
+are suffixes that specify floating-point constants: 
+E = REAL constant
+L = REAL(64) constant 
+<exponent> 
+is one or two decimal digits comprising the exponential part. 
+-78 77 through +/-1.16 * 10 
+Range: +/-8.62 * 10
+Precision: REAL--to approximately seven significant digits 
+4-· 14 
+4J82581 AOO 3/85 
+DATA REPRESENTATION REAL and REAL(64) Numeric Constants 
+Examples of REAL and REAL(64) Numeric Constants 
+Decimal Value 
+0 
+2 
+-17.2 
+Storage Format 
+REAL REAL(64) 
+O.OEO O.OLO 
+2.0eO 2.0LO 0.2E1 0.2Ll 20.0E-1 20.0L-1 
+-17.2EO -17.2LO -1720.0E-2 -1720.0L-2 
+The system stores the number in binary scientific notation in the form: 
+y 
+x*2
+X is a value of at least 1 but less than 2. Since the integer part 
+of X is always 1, only the fractional part of X is stored. 
+The value y is an exponent in the range 0 through 511 (%777). The system adds 256 (%400) to y before storing it. Thus, the exponent is the stored value minus 256. This provides for exponents from -256 
+(represented by %0) through 255 (represented by %777). 
+The system stores the parts of a floating-point constant as follows: 
+Sign Bit 
+REAL <O> REAL(64) <O> 
+Fraction 
+<1:22> <1:54> 
+Exponent 
+<23:31> <55:63> 
+..-,. 82581 AOO 3/85 
+4-15 
+DATA REPRESENTATION
+HEAL and REAL(64) Numeric Constants 
+Examples of Storage Formats 
+1. For the REAL constant shown, the sign bit is 0, the fraction bits are 0, and the exponent bits contain %400 + 2, or %402: 
+2 
+stored as 000000 000402 
+2. For the REAL constant shown, the sign bit is 1, the fraction bits contain %.2 (decimal .25 is 2/8), and the exponent bits contain %400 + 3, or %403: 
+3
+-10 = -(1.25 * 2 ) stored as 120000 000403 
+3. For the REAL(64) constant shown, the sign bit is 0, the fraction bits contain the octal representation of .333333 ..• , and the exponent bits contain %400 - 2, or %376: 
+4--16 
+4 = 1.0 * 2 
+1/3 = .333333 ..• * 2 
+stored as 025252 125252 125252 125376 
+-2 
+Af'82581 AOO 3/85 
+Constant Lists 
+A constant list is a list of one or more constants. You can use constant lists in: 
+• Array declarations not in structures (Section 9) 
+• Group comparison expressions (Section 13) 
+• Move statements but not assignment statements (Section 15) 
+The syntax of the constant list is: 
+[ <repetition-factor> * ] "[" <constant-list> "]" 
+<repetition-factor> 
+is an INT constant that specifies the number of times <constant-list> occurs 
+<constant-list> 
+is a list of elements stored on an element boundary. It has the form: 
+<constant> [ , <constant ] ••• 
+<constant> 
+is a character string, a number, or a LITERAL. For INT arrays only, the constants can be different types. The range and syntax for specifying constants depends on the data type. 
+~ 82581 AOO 3/85 
+4-17 
+DATA REPRESENTATION Constant Lists 
+DATA REPRESENTATION Constant Lists 
+Examples of Constant Lists 
+1. The two examples in each pair below are equivalent: 
+[ "A", "BCD" , "...", "Z" ] [ "ABCD..•Z" ] 
+10 * [0]; [0,0,0,0,0,0,0,0,0,0] 
+[3 * [2 * [1], 2 * [0]]] [1,1,0,0,1,1,0,0,1,1,0,0] 
+10 * [" "]
+[" "] 
+2. These examples declare arrays and initialize them using constant lists: 
+STRING a[0:99] := ["A constant list that is a single " "character string can continue on ", 
+"more than one line."]; 
+INT b[0:79] := 80 * [" "]; !Repetition factor INT{32) c[0:4] :=["abed", lD, 3D, "XYZ", %20D]; 
+!Mixed constant list 
+4-·18 
+..,..1H2581 AOO 3/85 
+SECTION 5 
+ADDRESSING MODES 
+This section summarizes the process environment, the user data space, and the addressing modes used in this environment. The addressing modes described are: 
+• Byte and word addressing 
+• Direct and indirect addressing 
+• Standard and extended addressing 
+• Indexing 
+For more information than is given in this section, see the System Description Manual for your system. 
+PROCESS ENVIRONMENT 
+Figure 5-1 shows the current process environment. The following registers are shown in this figure: 
+• Program Counter (P) Register--Contains the address of the next instruction in the code area 
+• Instruction (I) Register--Contains the instruction that is currently executing 
+• Local (L) Register--Contains the address of the beginning of the local data area for the most recently called procedure. 
+• Stack (S) Register--Contains the address of the last allocated word in the dynamic data stack (see also Figure 5-2) 
+~82581 AOO 3 / 8 5 
+5-1 
+ADDRESSING MODES Process Environment 
+• Register Stack--Eight registers (RO through R7) for computation:
+R5, R6, and R7 double as index registers: the register pointer (RP) points to the top of the register stack 
+• Environment (ENV) Register--Contains information about the current process such as the current RP pointer and whether traps are enabled 
+..-----------------------------------,-------------. 
+Current Code Segment 
+Proc 1 
+Proc 2 
+I Register 
+G[O] 
+Current Data Segment 
+Global Data 
+Local Data 
+P Register 
+~Register 
+,____________________,__________________,______.. Figure 5-1. Process Environment 
+USER DATA SPACE 
+The user data space consists of the current user data segment and extended data segments, if any. (A segment is a non-extended segment except where the word "extended" is specifically used.) 
+The organization of the current data segment is shown in Figure 5-2. 
+5·-2 
+- 
+L 
+~ 
+Register Stack 
+L Register JJ 
+s Register ~--_] 
+RP (3 bits) 
+85013-007 
+4'82581 AOO 3/85 
+G[32767] 
+G[65535] 
+- 
+- 
+This area is
+space for user application 
+Af'82581 AOO 3/85 
+5-3 
+G[O] 
+L[O] 
+L[l] 
+MAIN procedure 
+Local storage for other called 
+procedures 
+Parameter area for current procedure 
+Saved P register Saved ENV register Saved L register 
+Local storage for current procedure 
+Sublocal data and parameter storage for current 
+} Three-word stack marker precedes local data for each called procedure except MAIN 
+Global data variables 
+i------------- ...--- Dummy stack marker Local storage for 
+subprocedure
+S[O] t--------------t ~ Top of data stack 
+~ Available for v '1 dynamic data stack ,{ 
+Upper 32K area 
+vv /Not available for ,{ 
+dynamic data stack 
+Figure 5-2. Organization of Current Data Segment 
+t - 
+extra 
+buffer 
+ADDRESSING MODES User Data Space 
+ADDRESSING MODES
+Byte and Word Addressing 
+ADDRESSING MODES 
+Addressing modes are byte and word addressing, direct addressing, standard and extended indirection, and indexing. 
+Byte and Word Addressing 
+Figure 5-3 sho~s byte and word addresses in the data segment. 
+5-4 
+G[O] 
+[ 0] [ 1] [ 0] 
+[2] [3] [l] 
+[4] [ 5] [ 2] 
+[6] [7] [3] 
+G[65535] 
+)I 
+1" 
+v 
+/' 
+v 
+v 
+,( 
+....._ 
+lim it for 
+Byte Addresses Word Addresses 
+[65534] 
+[65535] 
+[32767] 
+. . . 
+(65535] 
+Upper 16-bit byte addresses 
+Upper 32K area 
+Access through 16-bit word pointer or 
+extended pointer only 
+.. 
+.. ./. 
+Figure 5-3. Byte and Word Addressing 
+L'1f1 82581 
+AOO 3/85 
+ADDRESSING MODES Direct and Indirect Addressing 
+Except for structures and substructures, the data type of a variable determines whether it has a byte or a word address. Variables of type STRING have byte addresses: variables of any other data type have word addresses. 
+Structures always have a word address: substructures always have a byte address. (Variables contained in structures and substructures have byte or word addresses based on the data type of the variable.) 
+For examples specific to simple variables, arrays, and structures, see Sections 8, 9, and 11. 
+Direct Addressing 
+Direct addressing is data access that requires only one memory reference. Direct addressing is not absolute but is relative to the base of the global, local or sublocal area of the current data segment. 
+The range for direct addressing is limited to the lower 32K words of memory. The upper 32K always requires indirect addressing (described next) since it is not part of the dynamic data stack. That is, the upper 32K is not directly addressable using the L or S register. 
+Indirect Addressing 
+Indirect addressing is data access through a pointer (a data element that contains the memory address of another data element). Indirect addressing requires two memory references, one to get the pointer contents and the second to get the data element to which the pointer points. Indirect addressing is standard or extended. 
+Standard Indirection 
+Standard 16-bit addresses allow access to the current data segment (byte or word addresses in the lower 32K area and word addresses in 
+the upper 32K area). Standard indirection is data access through either: 
+• Standard pointers and structure pointers you declare and initialize yourself 
+• Standard pointers TAL provides and initializes when you declare indirect arrays and structures 
+..-, 82581 AOO 3/85 
+5-5 
+ADDRESSING MODES
+Primary and Secondary Storage 
+Extended Indirection 
+Extended 32-bit addresses allow access to byte addresses in the entire data segment, code segment, and extended data segment. Extended 
+indirection is data access through extended pointers and structure pointers you declare and initialize. 
+For examples showing standard and extended indirection, see the following sections: Section 9 (indirect arrays), Section 10 (standard or extended pointers), Section 11 (indirect structures and standard or extended structure pointers). 
+Primary and Secondary Storage 
+The global and local areas in the data segment each have a primary and secondary storage area. The sublocal area has only primary storage. 
+The primary areas are directly addressable; they contain pointers and direct variables based on global, local, or sublocal scope. The size of each primary area is: 
+Global primary area: Local primary area: Sublocal primary area: 
+256 words 127 words 31 words 
+The secondary areas are indirectly addressable; they contain the data for indirect arrays and structures depending on global or local scope. The secondary areas have no explicit size limit, except that the total 
+data storage cannot exceed the lower 32K area. 
+Figure 5-4 shows the global and local primary and secondary storage areas and the sublocal primary area. 
+5--6 
+"1i' 82581 AOO 3/85 
+ADDRESSING MODES Primary and Secondary Storage 
+Global primary area (256 words) 
+}Global secondary area 
+]- Three-word stack marker precedes local data for each called procedure except MAIN 
+} } 
+} Sublocal primary area (31 words) 
+G[32767] l=============I..._ Upper limit of directly addressable area 
+Y Upper 32K area v 
+G(65535] L f 
+Figure 5-4. Primary and Secondary Storage in User Data Segment 
+"'182581 AOO 3/85 
+G[O] 
+L[l] 
+S[O] 
+y 
+v 
+Global direct variables and 
+pointers t------------- 
+Global indirect arrays and structures 
+Stack marker 
+Local direct variables and 
+pointers 
+Local indirect arrays and structures 
+Sublocal direct variables 
+} 
+// 
+Local primary area (127 words) 
+Local secondary area 
+5-7 
+ADDRESSING MODES Storage Allocation 
+Storage Allocation 
+TAL allocates space for each variable in the order in which you declare them as follows: 
+• Global Variables--TAL allocates space at compilation for each variable at an offset from the beginning of the data block in which it appears. The data blocks are relocatable at bind time. 
+• Local and Sublocal Variables--TAL allocates space for each variable when a call to a procedure or subprocedure occurs. 
+Primary Storage. For global or local variables, TAL allocates primary storage for each direct variable and each pointer. Allocation starts at G[O] (global scope) or L[l] (local scope). Each successive
+variable or pointer is allocated space at an increasingly higher offset. 
+For sublocal variables, TAL allocates storage starting at S[O]. Each successive sublocal variable is allocated storage at a negative offset from S[O]. 
+Secondary Storage. TAL allocates storage for the data in each Indirect array and structure in the global or local secondary area. The secondary area begins immediately after the last direct variable or pointer. 
+Examples specific to simple variables, arrays, pointers, structures, and equivalenced variables are given in Sections 8 through 14. 
+5--8 
+~ 82581 AOO 3/85 
+Indexing 
+You can access data by appending an index to the name of a variable. 
+The syntax for indexing a variable is: 
+<identifier> "[" <index> "]" 
+<identifier> 
+is the name of a previously declared variable (simple variable, array, structure, substructure, structure data 
+item, or pointer). The variable can be direct or indirect. 
+<index> 
+is one of the following values: 
+• For standard addressing, it is a signed INT arithmetic expression that represents either: 
+--an element offset from the address of a simple variable or array (when appended to a simple variable, array, pointer, or structure data item) 
+--an occurrence offset from the address of a structure (when appended to a structure or structure pointer) or from the address of a substructure (when appended to a 
+substructure). An occurrence is one copy of a structure or substructure. 
+• For an extended pointer, it is a signed INT or INT(32) arithmetic expression. 
+• For an extended structure pointer, it must be a signed INT arithmetic expression. 
+Afl82581 AOO 3/85 
+5-9 
+ADDRESSING MODES Indexing 
+ADDRESSING MODES Indexing 
+The following example shows use of indexes: 
+INT var[0:4]; !Declares array INT .ptr := %100000; !Declares pointer 
+var[2] := 5;
+ptr ' : =' [1, 2, 3] ; 
+var[3] := ptr[2]; 
+Indexes and Data Type 
+!Assigns 5 to third element of "var" !Moves constant list to location to which ! "ptr" points
+!Assigns 3 to fourth element of "var" 
+The data type impacts the amount of offset yielded by an index. For type STRING, the index yields a byte offset from the variable base. For INT, a word offset; for INT(32) and REAL, a doubleword offset; for REAL(64) and FIXED, a quadword offset. 
+In the following example, "var" contains five doubleword elements: 
+INT(32) var[0:4]; !Declares array
+var[3] := 2; !Accesses the fourth element of "var" 
+Indexing Examples 
+1. The following example shows an indexed direct variable: 
+PROC x MAIN;
+BEGIN a[O] --.. L[ 1] 
+INT a[0:2]; 
+a[l] __.L[2] 
+a[2] := 5;
+END; a[2] -+- L[3] 5 
+5--10 
+-'182581 AOO 3/85 
+ADDRESSING MODES Indexing 
+, 2. This example of an indexed pointer initializes an INT pointer with the address of an INT(32) array, then assigns a value to the last word of the array via the indexed pointer: 
+PROC z MAIN; BEGIN 
+INT(32) d[0:4] ~= [10, 20, 30, 40, OD]: 
+INT .p := @d[0]; 
+p [9] := 5: END: 
+!View "d" as single words 
+!Last word of "d" is a
+! nine-word offset from p[O] 
+Figure 5-5 shows the array before and after the assignment. (L[O] contains the third word of the 3-word stack marker.) 
+d[O] ~ d[l] ~ d[2] ~ d[3] ~ d[4] -.. 
+L[l] 0 
+L[2] 1 
+L[3] 0 
+L[4] 2 
+L[5] 0 
+L[6] 3 
+L[7] 0 
+L[8] 4 
+L[9] 0 
+L[lO] 0 
+L[l] 
+L[2] 
+L[3] 
+L[4] 
+L[5] 
+L[6] 
+L[7] 
+L[8] 
+L[9] 
+L[lO] 
+.p __.. 
+..._ p[O] 
+4J82581 AOO 3/85 
+.p ~ L[11] @d[O] 
+Before After 
+L[O] L[O] 
+... 
+0 I-- 1 
+Figure 5-5. Indexing a Pointer 
+I- 
+I- 
+1-- 
+1-- 
+0 
+2 
+0 
+3 
+0 
+4 
+0 
+5 
+@d[O] 
+- 
+- 
+__.., 
+- 
+~ p[9] 
+5-11 
+SECTION 6 
+LITERALS AND DEFINES 
+This section describes the following declarable objects: 
+• LITERALS--Named constants 
+• DEFINES--Named text with or without parameters 
+For each, the following information is given: 
+• Declarations 
+• Compiler action 
+• Data access 
+LITERAL and DEFINE declarations let you define constants and text once in a program, then reference them by name many times throughout the 
+program. They allow you to make significant changes in the source code efficiently. You only need to change the declaration, not every reference to it in the program. 
+"''f 82581 AOO 3/85 
+6-1 
+LITERALS AND DEFINES LITERAL Declaration 
+L. I TERAL DECLARATION 
+The LITERAL declaration associates an identifier with a constant. 
+The syntax for the LITERAL declaration is: 
+LITERAL <identifier> = <constant> 
+[ , <identifier> = <constant> ] ••• 
+<identifier> 
+is an identifier associated with <constant>. 
+<constant> 
+is an INT, INT(32), FIXED, REAL, or REAL(64) constant expression or a character string of one to two characters. 
+It must not be the address of a global variable because all global variables are relocatable. 
+You access a LITERAL constant by referencing its identifier in other declarations and in statements. 
+TAL allocates no storage for LITERAL constants. It substitutes the associated value at each occurrence of the identifier. 
+LITERAL identifiers make the source code more readable. In the e.xample shown on the next page, identifiers such as "buffer"'length", "table"'size", "table"'base", and "entry"'size" are more readable than their corresponding constant values (80, 128, %1000, and 4). 
+6--2 
+AJ82581 AOO 3/85 
+Examples 
+1. The following example shows various LITERAL declarations: 
+LITERAL true = -1, 
+-'f82581 AOO 3/85 
+6-3 
+LITERAL second minute 
+false
+buffer"length 80, table"size 128, table"base %1000, entry"size
+timeout
+CR
+LF 
+0' 
+2. The following example declares the length of an array as a LITERAL constant, then references the LITERAL identifier in an array declaration: 
+LITERAL length = 50; !Length of array INT buffer[O:length - 1]; !Array declaration 
+3. The following example declares LITERAL constants, then references their identifiers in subsequent LITERAL declarations: 
+1, second * 60, minute * 60, over"time = hour + 30, double"time = 2 * hour; 
+hour 
+4' = %100000D, 
+%15, = %12; 
+LITERALS AND DEFINES LITERAL Declaration 
+LITERALS AND DEFINES DEFINE Declaration 
+DEFINE DECLARATION 
+A DEFINE declaration associates an identifier (and parameters if any) with specified text. 
+The syntax for the DEFINE declaration is: 
+DEFINE <identifier> <param> [ <param> 
+...) = <text> # ...) = 
+<text> # ] ... 
+# 
+is all characters between = and #. Enclose character strings in quotation marks ("). To use# in the <text>, enclose it in quotation marks or embed it in a character string. 
+terminates a definition. 
+[ 
+<identifier> <param> [ <param> 
+' 
+<identifier> 
+is the name associated with <text>~ <param> 
+is the name of a formal parameter. 
+<text> 
+When specifying <text>, the following rules apply: 
+•	The expanded text must produce legal TAL constructs. 
+•	The text must not be recursive; that is, it must not call itself. 
+6-4 
+4~82581 AOO 3 / 8 5 
+Examples of DEFINE Declarations 
+1. This example shows a DEFINE declaration with no parameters: 
+DEFINE value = ( (45 + 22) * 8 / 2 ) #;
+2. This example provides incrementing and decrementing utilities: 
+DEFINE increment (x) = x := x + 1 #; DEFINE decrement (y) y := y - 1 #; 
+3. This example loads numbers into particular bit positions: 
+DEFINE wordAval (a, b) = (a '<<' 12) LOR b #; 
+Compiler Operation 
+TAL allocates no storage for defined text. When TAL encounters a DEFINE identifier in a statement, it replaces the identifier with the text, compiles it, and emits any machine instructions needed. 
+Accessing Defined Text 
+You access defined text by using its identifier in a statement. 
+If you use a DEFINE identifier in an expression, make sure that proper evaluation occurs. For example, if the DEFINE identifier represents an expression to be evaluated first, you must enclose the text in parentheses: 
+DEFINE expr = (5 + 2) #;
+j := expr *4; !Means (5 + 2) *4 and assigns 28 to "j" 
+Without parentheses, the same example has a different result: 
+DEFINE expr =5 + 2 #;
+j :=expr*4; !Means5+2*4andassigns13to"j" 
+AfJ82581 AOO 3/85 
+6-5 
+LITERALS AND DEFINES DEFINE Declaration 
+1, I TERALS AND DEFINES DEFINE Declaration 
+Passing Parameters 
+If the DEFINE declaration has formal parameters, you supply the actual parameters when you reference the DEFINE identifier in a statement. The following rules apply to actual parameters: 
+•f If an actual parameter requires commas, enclose the comma in apostrophes (' ). An example is an actual parameter that is a parameter list: 
+DEFINE varproc (procl, param) = CALL procl (param) #~ varproc (myproc, i ',' j ',' k); !Expands to 
+! "CALL myproc (i~ j, k);" • An actual parameter can include parentheses. For example: 
+DEFINE varproc (procl, param) CALL procl (param) #~ varproc (myproc, (i+j) * k); !Expands to 
+! "CALL myproc ((i+j)*k);" 
+E!xamples of Accessing Defined Text 
+1. The following example shows a DEFINE declaration and the statement that references it: 
+DEFINEcube(x)= ( x*x*x)#; INT result; 
+result :=cube (3) '>>' 1: !Means (3 * 3 ·1c 3) '>>' 1 = ! 27 '>>' 1 13 
+2. This example provides incrementing and decrementing utilities and a statement that references one of them: 
+DEFINE increment (x) = x := x + 1 #; DEFINE decrement (y) y := y - 1 #; INT index := O; 
+increment(index); !Means "index := index + 1;" 
+6-6 
+~j 82581 AOO 3/85 
+3. The following example fills an array with zeros: 
+DEFINE zeroAarray (array, length) = BEGIN 
+array[O] := O; 
+array[!] ':=' array FOR length - 1; END #; 
+LITERAL len = 50;
+INT buffer[O:len - l]; 
+zeroAarray (buffer, len); !Fill buffer with zeros 
+4. The following example displays a message, checks the condition code, and returns an error if one occurs: 
+INT error;
+INT file;
+INT .buffer[0:50]; INT countAwritten; 
+DEFINE emit (filenum, text, bytes, count) = BEGIN 
+CALL WRITE (filenum, text, bytes, count); 
+"f82581 AOO 3/85 
+6-7 
+I F 
+END 
+< THEN BEGIN 
+CALL FILEINFO (filenum, error); 
+RETURN error; END; 
+# ; 
+.
+IF i = 1 THEN emit (file, buffer, 80, countAwritten); 
+LITERALS AND DEFINES DEFINE Declaration 
+SECTION 7 
+LABELS 
+This section describes how to declare and use labels. A label is an identifier you use with the GOTO statement. 
+LABEL DECLARATION 
+The LABEL declaration reserves an identifier for later use as a label. 
+The syntax of the LABEL declaration is: 
+LABEL <identifier> [ , <identifier> ] •.• 
+<identifier> 
+is the name of the label. It cannot be a global declaration. 
+Labels are the only declarable objects you do not need to declare before using them. However, declaring them ensures that you access the label rather than a variable in the event they have the same name. 
+(See Examples 4 and 5.) 
+Aft82581 AOO 3/85 
+7-1 
+IJABELS
+Label Declaration 
+Local Labels 
+'I'he steps for declaring, using, and referencing local labels are: 
+1. Declare the label name inside a procedure. 
+2. Place the label name and a colon (:) preceding a statenent in the same procedure (not in a subprocedure). 
+3. Reference the label in another statement located in the~ same procedure or in any subprocedure contained in that procedure. 
+Sublocal Labels 
+The steps for declaring, using, and referencing sublocal lc1bels are: 
+1. Declare the label name inside a subprocedure. 
+2. Place the label name and a colon (:) preceding a statement in the same subprocedure. 
+3. Reference the label in another statement located in the same subprocedure. 
+Referencing Labels 
+Statements you can use for referencing labels include: 
+•	A GOTO statement to branch to the label 
+A GOTO statement in a procedure can reference a label in the same procedure, but not in any subprocedure. 
+A GOTO statement in a subprocedure can reference a label in either the same subprocedure or the encompassing procedure. 
+•	An assignment statement to store the address of the label in a variable 
+7-2 
+~ fl2581 AOO 3/85 
+LABEL label"a; 
+!Invalid label declaration; a ! label cannot be global 
+!Invalid placement of label;
+! ELSE does not begin a statement 
+PROC b ; INT a, b; 
+label"a 
+3. This example 
+IF a>b THEN 
+<statement> ELSE 
+<statement>; 
+4182581 AOO 3/85 
+PROC BEGIN 
+addr 
+p ; 
+LABELS Label Declaration 
+shows valid placements of undeclared local labels: 
+Examples 
+1. This example 
+PROC a ; INT a, b; 
+label"a 
+label"b 
+label"c 
+2. This example
+have global scope, and you must place it at the start of a statement: 
+IF a>b THEN 
+<statement> ELSE 
+<statement>; 
+!Valid placement of labels 
+is not a legal use of labels because a label cannot 
+declares a label and makes two branches to it: 
+INT opl, op2, result; 
+!Global declarations 
+!Label declaration 
+!Branches to the label 
+!Labeled location 
+!Branches to the label 
+LABEL addr; opl := 5; op2 := 28: GOTO addr: 
+result := opl + op2: opl := op2 * 299; 
+IF result < 100 GOTO addr: 
+7-3 
+LABELS
+Label Declaration 
+4. This example uses an undeclared label name that is also the name of a global variable. Using the name accesses the address of the variable, not the address of the label as intended. 
+7-4 
+Lf 82581 
+INT loop, data; 
+PROC p ; BEGIN 
+data := @loop; 
+loop : a := O; 
+!Global variables 
+!Stores address of variable ! instead of label 
+!Uses undeclared label 
+~i. This example corrects example 4 by declaring the label. It stores the address of the label in a variable: 
+INT loop, data; 
+!Global variables 
+!Label declaration 
+!Stores label address ! in "data" 
+!Labeled location 
+PROC BEGIN 
+loop END; 
+p ; 
+LABEL loop; 
+data := @loop; 
+<statement> 
+AOO 3/85 
+SECTION 8 
+SIMPLE VARIABLES 
+A simple variable is a single-element variable of a specified data type. You allocate storage for it through a data declaration, then use it in statements to access or change its data. 
+This section gives information on simple variables: 
+• Declaration 
+• Initialization 
+• Storage allocation 
+• ,Data access 
+SIMPLE VARIABLE DECLARATION 
+The simple variable declaration associates an identifier with a single-element variable and optionally initializes it. 
+"'1'f 82581 AOO 3/85 
+8-1 
+SIMPLE VARIABLES
+Simple Variable Declaration 
+·rhe syntax for the simple variable declaration is: 
+<type> <identifier> [ := <initialization> ] 
+[ , <identifier> [ :=<initialization> ] ] ... 
+<type> 
+is one of the following data types: 
+8-2 
+.,, 82581 
+AOO 3/85 
+STRING INT INT(32) FIXED [ 
+REAL REAL(64) 
+<fpoint> 
+<fpoint> ) ] 
+is the position of the decimal point. It is a value in the range -19 through 19. The default value is 0 (no decimal 
+places). A positive value is the number of decimal places. A negative value is the number of integer places between the least significant digit and the decimal point. 
+If <initialization> has a different decimal setting than <fpoint>, the system scales <initialization> to match <fpoint>. If the value is scaled down, some precision is lost. 
+<identifier> 
+is the name of the simple variable in the form described in Section 3 under "Identifiers." 
+<initialization> 
+is a constant expression (global data) or an arithmetic expression (local or sublocal data). 
+Initializing Simple Variables 
+The data type of the initializing value must match that of the variable, except for character strings. If a character string is smaller than the space allocated, TAL left justifies the characters in the variable and sets the extra bytes to O. If it is too large, TAL truncates the excess characters and emits a warning. 
+Examples of Simple Variable Declarations 
+1. The following examples declare simple variables: 
+STRING b ; INT(32) dblwdl; 
+REAL(64) long; 
+2. The following examples declare and initialize simple variables: 
+-'182581 AOO 3/85 
+STRING y := "A"; STRING z := 255; 
+INT a := "AB";
+INT b := 5 * 2;
+INT c := %B110;
+INT(32) dblwd2 := %B1011101D; 
+REAL flt2 := 365335.6E-3;
+REAL(64) b := 2718.2818284590452L-3; 
+!Character string !Unsigned number !Character string !Expression !Binary value !Doubleword value !Real value !Quadword value 
+3. The following examples show FIXED declarations and how the <fpoint> affects storage (and scaling): 
+FIXED(-3) f := 642000F; !Stores 642
+FIXED(3) g := 0.642F; !Stores 642 (three implicit decimal 
+! places)
+FIXED(2) h := 1.234F; !Scales rightmost digit; stores 123 
+! (two implicit decimal places) 
+4. This example illustrates use of constants (any level) and variables (local or sublocal only) as initialization values: 
+INT global := 34; 
+PROC mymain MAIN; BEGIN 
+INT local := global + 10;
+INT local2 := global * local; FIXED local3 := $FIX(local2); 
+END; 
+!Constants allowed at global, ! local, or sublocal levels 
+!Variables allowed at
+local or sublocal levels 
+! but not at global level 
+!End of "mymain" procedure 
+SIMPLE VARIABLES Simple Variable Declaration 
+8-3 
+SIMPLE VARIABLES Storage Allocation 
+STORAGE ALLOCATION 
+Figure 8-1 shows simple variable declarations and the offset allocation that results. 
+Por a simple variable of type STRING, TAL allocates one word of storage. The initializing value is stored in the left byte and a zero is stored in the right byte. 
+STRING a; INT(32) b; 
+PROC proc"a; BEGIN 
+STRING c; REAL d ; 
+t b Local 
+Data c0 
+t 
+d 
+!Sublocal data Sublocal
+Data e 
+f 
+G[l] 
+L[l] 
+L[2] 
+S(-4] 
+S[O] 
+SUBPROC subproc"a; BEGIN 
+INT e; 
+FIXED f; END; 
+END; 
+!Global data 
+!Local data 
+;,- 
+I' 
+-------------------------------------------~ 
+Figure 8-1. Storage Allocation for Simple Variables 
+8-4 
+__________.., Word Offset 
+i 
+Global a 0 G[O] Data 
+·~J82581 AOO 3 / 8 5 
+ACCESSING SIMPLE VARIABLES 
+To access a declared simple variable, you use its name in a statement, with or without an index. 
+Examples of Accessing Simple Variables 
+1. The following example declares and initializes a simple variable, then assigns a new value to it: 
+INT count := O; !Declaration and initialization 
+count := count + 1; !Assignment 
+2. This example shows how initialization left justifies a one-byte character string, whereas an assignment right justifies it (unless you assign a character and a space): 
+INT v :="A"; 
+INT x, z; 
+.- "A"; X·- 
+z : = "A "; 
+!Declares "v"; initializes ! it with character !Declares "x" and "z" 
+!Assigns character to "x" !Assigns character and
+! space to "z" 
+v "A" 0 
+x 0 "A" 
+z "A" 
+3. This example shows indexed access to a simple variable: 
+Af'82581 AOO 3/85 
+8-5 
+INT i; INT j; INT k ; 
+i[2] := O; 
+!"k" gets 0 
+SIMPLE VARIABLES Accessing Simple Variables 
+SECTION 9 
+ARRAYS 
+An array is a collectively stored set of elements of the same data type. You can use the same identifier to access the elements individually or as a group. 
+This section describes one-dimensional arrays: 
+• Arrays stored in the current user data segment 
+• Read-only arrays stored in a user code segment 
+Information discussed includes: 
+• Array declarations 
+• Storage allocation 
+• Data access 
+Arrays within structures and multidimensional arrays are described in Section 11, "Structures." 
+ARRAY DECLARATION 
+An array declaration associates an identifier with a set of elements of the same data type collectively stored in the user data segment. 
+/'f82581 AOO 3/85 
+9-1 
+ARRAYS
+Array Declaration 
+The syntax for the array declaration is: 
+<type> [ . ] <identifier> "[" <lower-bound> : <upper-bound> "]" 
+[ := <initialization> ~
+[ , [ . ] <identifier> "[" <lower-bound> : <upper-bound> "]" 
+[ :=<initialization> ] ] ... ; 
+<type> 
+is one of the following data types: 
+STRING INT INT(32) 
+FIXED [ REAL REAL(64) 
+<fpoint> ) ] 
+<fpoint> is as described for simple variables in Section 8. 
+. (period) 
+is the indirection symbol for standard addressing. 
+<identifier> 
+is the name of the array in the form shown in Section 3 under "Identifiers." 
+<lower-bound> 
+is an INT constant expression in the range -32768 through 32767 that defines the first array element. Both lower and upper bounds are required . 
+..._____________________________________, _______ 
+9--2 
+Af'82581 AOO 3/85 
+, 
+<upper-bound> 
+is an INT constant expression in the range -32768 through 32767 that defines the last array element. For arrays outside of structures, <upper-bound> must be equal to or greater than <lower-bound>. 
+<initialization> 
+is a numeric or character string constant or a constant list to assign to the array elements. 
+Direct Versus Indirect Arrays 
+In the global and local areas, you can declare direct or indirect arrays. In the sublocal area, arrays must be direct. 
+Because the global and local primary areas are limited to 256 and 127 words of direct data each, you should declare most arrays by using the 
+indirection symbol. TAL manages indirection for you by providing a pointer and initializing it with the location of the data. To access an indirect array, you reference it by name as if it were a direct array. 
+Array Base 
+To the TAL compiler, the base of an array is element [O] regardless of the lower and upper bounds specified. For example, if you declare array bounds of [-5:5] or [3:7], TAL allocates space only for the specified range, but the array base is still element [0]. 
+For direct arrays, the array base must be addressable. The base must reside between 'G' relative word addresses [0:32767]. For example: 
+• If the first global array is direct, its lower bound must be a 0 or negative value, since the global area has 'G' plus addressing only. 
+• The upper bound of the last sublocal array must be a 0 or larger value, since the sublocal area has 'S' minus addressing only. 
+..-, 82581 AOO 3/85 
+ARRAYS Array Declaration 
+9-3 
+A.RRAYS
+Array Declaration 
+Examples of Array Declarations 
+1. This example declares indirect arrays with various bounds: 
+9--4 
+INT .array"'a[O:O]; INT .array"'b[-1:0]; 
+!One-element array !Two-element array !Four-element array !Fifty-element array 
+. array"'c[ 0: 3] ; 
+FIXED
+INT .array"'d[0:49]; 
+2. In this example, the simple variable and the array base (logical element [0]) are located at the same address: 
+INT var; var ~· array[O] INT array[1:2]; 
+array[l] 
+array[2] 
+3. These examples declare and initialize arrays using constant lists: 
+INT .b"'array[0:9] := [1,2,3,4,5,6,7,8,9,10]; !Constant list 
+STRING .buffer[0:108] := [ "You can use a constant list when " "a character string constant is too ", "long to fit on one line." ]; 
+INT(32) .mixed[0:4] := ["abed", lD, %B0101011D, %20D]; !Mixed ! constant list 
+LITERAL len = 80; !Length of array STRING .buffer[O:len - 1] := len * [" "]; !Repetition factor 
+INT .rec[O:ll] := ["$RECEIVE", 8*[" "]]; !GUARDIAN file name 
+FIXED .f[0:20] := 3*[2*[1F,2F], 4*[3F,4F]]; !Repetition factors 
+LITERAL e r = %15, lf = %12; 
+STRING .err"'msg[0:15] := [cr, 1f, "ERROR", cr, 1f, 0]; 
+"1'82581 AOO 3/85 
+Storage Allocation 
+The data type and number of elements determine the amount of storage TAL allocates for array data. Direct or indirect addressing determines if the data is allocated in primary or secondary storage. 
+Direct Array Allocation 
+For global direct arrays, TAL allocates primary storage at offsets from the beginning of the global data block that contains the arrays. 
+For local or sublocal arrays, TAL allocates primary storage at offsets from the base of the local or sublocal storage area. 
+Figure 9-1 shows an example of direct array declarations and the offset storage that results. 
+/182581 AOO 3/85 
+ARRAYS Storage Allocation 
+9-5 
+ARRAYS
+Storage Allocation 
+9--6 
+~, 82581 AOO 3/85 
+INT(32) a[O:l]; INT b[1:2]; 
+PROC proc"a; BEGIN 
+. 
+SUBPROC subproc"a; Local BEGIN Arrays 
+STRING c[0:2]; FIXED d[0:3]; 
+!Local
+! arrays 
+b[l] G[4] 
+b[2] 
+END: 
+END; 
+1-- 
+1-- d[O 
+L[3] 
+L[5] 
+!Global ! arrays 
+- .~ 
+INT e[O:l]; !Sublocal STRING f[0:3]; ! arrays 
+v ...
+c[O] c [1] L[l] c[ 2] 
+Figure 9-1. Storage Allocation for Direct Arrays 
+Global Arrays 
+t 
+1-- a[O] 
+f-- a[l] 
+G[O] 
+Word Offset 
+Sublocal Arrays 
+e[O] S[-3] 
+e[l] 
+t 
+t- 
+t 
+- 
+- 
+t- 
+}' 
+/ 
+t- 
+... 
+t- d[3] 
+f[O] f [1] S[-1] 
+f[ 2] f [3] S[O] 
+Indirect Array Allocation 
+For each indirect array, TAL allocates storage for a 16-bit pointer in the global or local primary area. It then allocates the array data in the corresponding global or local secondary area. Finally, the system initializes the pointer with the base address of the array. For a STRING array, the pointer contains a byte address. For any other type of array, the pointer contains a word address. 
+Figure 9-2 shows allocation for global indirect arrays. In this example, the global secondary storage area begins at location G[4]. 
+INT(32) .a[O:l]; INT .b[1:2]; 
+STRING .c[O:l]; INT .d[-1:49]; 
+1-- 
+1-- 
+a[O] --1 
+a[l] --1 
+G[4] ._,_J 
+G[7] - 
+G[lO] - 
+-'182581 AOO 3/85 
+.a 
+.b 
+Contains
+byte offset-. •c 
+Word Offset 
+4 G[O] - 
+7 G[l] 
+20 G[2] 
+12 G[3] 
+Base of array "b"_,... 
+Byte offset--.G[20] 
+b[l] 
+b[2] 
+c[O]lc[l] 
+d[-1] 
+d[O] 
+d[49] 
+.d 
+}' 
+v 
+Figure 9-2. Storage Allocation for Indirect Arrays 
+r 
+G[l2] 
+* 
+ARRAYS Storage Allocation 
+9-7 
+ARRAYS
+Data Access 
+Data Access 
+The method for accessing data in direct and indirect arrays is the same. You reference the array name in a statement. 
+To access a particular element, you reference the array name suffixed with an index value, as in "buffer[2]". If you reference the array name with no index, you access element [0]. Thus, the references 
+"buffer" and "buffer[O]" are equivalent. 
+Because TAL does no bounds checking, you access an address outside the array if the index value is outside the upper and lower bounds declared for the array. 
+To access byte elements in a word-aligned array, you must convert the word address of the array element to a byte address. You can use a bit shift operation for address conversions. Operating system procedures, for example, require INT arrays, but the SCAN statement requires byte elements. (See Example 3.) 
+Array operations include: 
+• Assigning values to elements one at a time using assignment statements 
+• Moving values into multiple elements using a move statement 
+• Scanning multiple elements using an SCAN or RSCAN statement 
+• Comparing multiple elements using a group comparison expression 
+Examples 
+1. The following example shows how accessing of direct and indirect arrays is the same: 
+INT dirAarray[0:2]: INT .indAarray[0:2]: 
+dirAarray[2] := 5: indAarray[2] := 5; 
+9--8 
+Afilfl2581 AOO 3/85 
+ARRAYS Data Access 
+2. The following example assigns a value to an out-of-bound address: 
+INT num; array[ 0]--. num INT array[l:2]; 
+array[O] := 4; !"num" gets 4 
+array[l] 
+array[2] 
+3. This example uses a bit shift operation('>>' 1) to convert the word address of an INT array to a byte address. It loads the byte address into a STRING pointer to scan bytes in the array: 
+INT .array(-1:8] := [0,"Doe, J",0]; !Declares INT array 
+STRING .sAptr := @array(O] '<<' 1; !Declares STRING pointer;
+! initializes it with byte 
+! address of array 
+SCAN sAptr[O] UNTIL ","; !Scans bytes in array 
+4. This example accesses an array element by using index variables: 
+!Declares arrays 
+!Declares indexes 
+!Accesses array element 
+INT INT INT INT y; INT z; 
+.b[O:lO]; .c[0:9]; 
+x· 
+' 
+!Code to manipulate indexes 
+.
+b[x] := c[y-z]; 
+5. This example compares the contents of two arrays and fills the first array with zeros if the contents match: 
+-'182581 AOO 3/85 
+LITERAL count = 99;
+INT .array[O:count - 1]; INT .text[O:count - 1]; 
+!Code to manipulate arrays 
+.
+IF array[O] = text[O] FOR count 
+THEN array[O] ':=' count * (O]; 
+!Declares array length !Declares arrays 
+!Compares arrays !Fills "array" with ! zeros if contents ! match 
+9-9 
+ARRAYS
+Read-Only Array Declaration 
+READ-ONLY ARRAY DECLARATION 
+A read-only array declaration allocates storage for a nonmodif iable array in a user code segment. 
+The syntax for the read-only array declaration is: 
+<type> <identifier> [ "[" <lower-bound> : <upper-bound> "]" ] 
+= 'P' := <initialization> 
+[ , <identifier> [ "[" <lower-bound> : <upper-bound> "]" ] 
+= 'P' := <initialization> ] ... ; 
+<type> 
+is one of the following data types: 
+9--10 
+~ 82581 AOO 3/85 
+STRING INT INT(32) FIXED [ 
+REAL REAL(64) 
+<fpoint> ) ] 
+<fpoint> is as described in Section 8 for simple variables. 
+<identifier> 
+is the name of the read-only array. 
+<lower-bound> 
+is an INT constant expression defining the first array element. The default value is [O]. 
+<upper-bound> 
+is an INT constant expression defining the last array element. The default value is the number of elements initialized minus one. 
+'P' 
+<initialization> 
+is a numeric or character string constant or a constant list to assign to the array elements. Initialization at declaration is mandatory. 
+Because code segments have no primary or secondary areas, read-only arrays must be direct. 
+If you declare a read-only array in a RESIDENT procedure, the array is also resident in main memory. 
+The binder binds each global read-only array into any code segment containing a procedure that references the array. 
+Data Access 
+You access global read-only arrays in the same manner as any other array, except that you cannot modify read-only arrays. That is, you cannot specify them on the left side of an assignment operator (:=). 
+Procedures can access any global read-only array in the same 32K of the code segment. 
+Procedures in the upper 32K of the code segment can access global STRING read-only arrays in the lower 32K words only by using
+extended pointers (described in Section 10, "Pointers"). You declare and load an extended pointer with the address of the read-only array, then use the pointer in a procedure to access the array in the same code segment. 
+You can pass the data of a read-only array by reference to a procedure only if the read-only array, the called procedure, and the calling procedure all reside in the same code segment. 
+"182581 AOO 3/85 
+specifies a read-only array. Read-only arrays are addressed using the program counter (the P register). 
+ARRAYS Read-Only Array Declaration 
+9-11 
+ARRAYS
+Read-Only Array Declaration 
+~~xamples 
+1. The following example declares read-only arrays using default lower and upper bounds: 
+STRING prompt = 'P' := ["Enter Character: " O]; INT error = 'P' := ["ILLEGAL INPUT"]; 
+2. The follbwing example moves a read-only array into a data array: 
+STRING message = 'P' := ["** LOAD MAG TAPE #00144"]; STRING .array[0:22]; 
+array ':= ' message FOR 23; 
+9-12 
+·~J82581 AOO 3 / 8 5 
+SECTION 10 
+POINTERS 
+A pointer is a variable that contains the address of a data item.
+When you reference a pointer, you access the variable whose address is stored in the pointer. 
+Pointers are standard or extended: 
+•	Standard pointers can access data in the current data segment (word-addressed data in the entire data segment; byte-addressed 
+data in the lower 32K area). 
+•	Extended pointers can access data in the current data segment, in an extended data segment created as described in Appendix A, or in the current user or system code segments (read access only). 
+This section describes pointers you declare and manage yourself: 
+• Declaring and initializing pointers 
+• Assigning values to pointers 
+• Accessing data by using pointers 
+It also tells how to get addresses of other items and how to use INT variables as temporary pointers. 
+This section does not describe the following kinds of pointers: 
+• Pointers that TAL provides when you declare indirect arrays (see Section 9) or indirect structures (see Section 11) 
+• Structure pointers (see Section 11) 
+• System global pointers (see Section 18) 
+-''f 82581 AOO 3/85 
+10-1 
+POINTERS
+Pointer Declaration 
+POINTER DECLARATION 
+The pointer declaration associates an identifier with a memory location containing the user-initialized address of another variable 
+or buffer area. 
+The syntax for the pointer declaration is: 
+<type> { } <identifier> [ := <initialization> ] { .EXT } 
+10-2 
+AP82581 AOO 3/85 
+... 
+is one of the following data types and specifies the type of value to which the pointer points: 
+[ , { } <identifier> [ := <initialization> ] ] { .EXT } 
+<type> 
+STRING INT INT(32) FIXED [ 
+REAL REAL(64) 
+. (period) 
+<fpoint> ) ] 
+is the indirection symbol for standard addressing. 
+. EXT 
+is the indirection symbol for extended addressing. It is a reserved word only when followed by <identifier>. At least one space must precede and follow the symbol. 
+<identifier> 
+is the name of the pointer. 
+<initialization> 
+is a constant expression (global scope) or an arithmetic expression (local or sublocal scope) as follows: 
+• If <identifier> is a standard STRING pointer, use a 16-bit byte address in the lower 32K area. 
+• If <identifier> is a standard non-STRING pointer, use a 16-bit word address in the 64K area. 
+• If <identifier> is an extended pointer of any type, use a 32-bit byte address. For details, see Appendix A. 
+If <initialization> represents the contents of another pointer or the address of an array or structure, the form for <initialization> is: 
+@<previous-identifier> 
+@ 
+is the symbol for removing indirection. 
+<previous-identifier> 
+is the name of a previously declared pointer, array, or structure, with or without an index. 
+Before you reference a declared pointer, be sure you have assigned a value to it, either in the pointer declaration or in a subsequent statement (see "Pointer Assignments" in this section). References to uninitialized pointers cause undefinable program execution. 
+Global pointers receive their initialized values when you compile the source code. Local and sublocal pointers receive their initialized values at each activation of the encompassing procedure or subprocedure. 
+Extended pointer declarations should precede other global or local declarations. TAL emits more efficient machine code if it can store extended pointers between G[O] and G[63] or between L[O] and L[63]. 
+~ 82581 AOO 3/85 
+10-3 
+POINTERS Pointer Declaration 
+POINTERS
+Pointer Declaration 
+Examples of Standard Pointer D~~~~~~tio~_§_
+All examples apply to global, local, and sublocal pointer, unless 
+otherwise noted. 
+1. This example declares but does not initialize a standard pointer: 
+INT(32) •ptr ; !Declares pointer 
+2. This example declares a standard pointer and initializes it with the location of the last element in an indirect array: 
+STRING .bytes[0:3]; !Declares indirect array STRING .sAptr := @bytes[3]; !Declares pointer; initializes 
+! it with location of "bytes[3]" 
+3. This example declares a standard pointer and initializes it with the starting address of the upper 32K area of the data segment: 
+FIXED .ptr := %100000; !Declares pointer; initializes
+! it with first address in upper 
+! 32K area 
+4. This example declares standard pointers and initializes them with the contents of another pointer: 
+10-4 
+"1'82581 AOO 3/85 
+INT .ptrl := %100000; INT .ptr2 := @ptrl;
+INT .ptr3 := @ptrl [2]; 
+!Contains first word of upper 32K !Contains same address
+!Contains third word of upper 32K 
+5. This example declares a STRING pointer and initializes it with the converted byte address of an INT array. This allows byte access to the word-addressed array: 
+INT .i[0:39];
+STRING . pt : = @i [ 0] I<< I 1; 
+!Declares INT array
+!Declares STRING pointer;
+! initializes it with array byte ! address that results from bit
+! shift operation('<<' 1) 
+6. This example declares an INT pointer and initializes it with the converted word address of a STRING array. This allows word access to the byte-addressed array. Any indexes appended to this pointer must be even. 
+STRING .b [0:4];
+INT .ptr := @b[O] '>>' 1; 
+!Declares STRING array
+!Declares INT pointer; initializes 
+it with array word address that ! results from bit shift operation 
+POINTERS Storage Allocation 
+7. This example declares a direct array and local or sublocal standard pointers and initializes them with values derived from the array declaration: 
+INT var[O:l] := [%100000, %110000]; !Declares array 
+INT .intAptrl := var[O]; !Declares pointer; initializes it
+! with value of first array element 
+INT .intAptr2 := var[l]; !Declares pointer; initializes it ! with value of second array 
+! element 
+Examples of Extended Pointer Declarations 
+1. This example declares an extended pointer and initializes it with the first location in the upper 32K of the current data segment: 
+INT .EXT ptr := %200000D; !Declares extended pointer; ! initializes it with first 
+! location of upper 32K area 
+2. This example declares a local or sublocal extended pointer and initializes it with the 32-bit address returned by the $XADR standard function for array "a", which has a standard address: 
+INT .a[O:l]; !Declares INT array
+STRING .EXT s := $XADR(a); !Declares exended pointer; 
+! initializes it with 32-bit
+! address retruned for array "a" 
+3. This example declares an extended pointer and initializes it with the first address in a previously allocated extended data segment: 
+INT .EXT ptr := %2000000D; !Declares extended pointer; ! initializes it with first 
+! in extended data segment 
+For additional examples using extended pointers to access data extended segments, see Appendix A. 
+STORAGE ALLOCATION 
+address 
+in 
+TAL allocates primary storage for each pointer in the order in
+you declare them. For a standard pointer, TAL allocates one word. For an extended pointer, it allocates two words. Figure 10-1 shows example pointer declarations and the resulting storage allocation. 
+"1J82581 AOO 3/85 
+which 
+10-5 
+POINTERS
+Storage Allocation 
+10-6 
+INT(32) INT 
+.a[O :l]; b; 
+.p2 200 
+STRING .c[0:3];
+INT .pl;
+INT .p2 := @a; .p4 INT .p3 := @b;
+INT(32) .EXT p4 := %2000000; 
+" 
+G[O] .a 
+b ~-It---· byte offset_. .c 408 
+Contains 
+Word Offset-+- G[ 200] 
+_........._... 
+.pl Undefined 
+.p3 1 
+G[408] G[204] c[O] c[l] (Bytes) (Words) 
+c[2] c(3] 
+1 - - 
+%200000 
+. . . 
+a[O] 
+a[l] 
+1' 
+'------------------------·-- 
+-··---·---------------·-----·--· 
+Figure 10-1. Pointer Storage Allocation 
+200 t---i 
+)' 
+/ 
+.. 
+• Upper 
+32K 
+..,, 32581 AOO 3/85 
+POINTER ASSIGNMENTS 
+The syntax for a pointer assignment is: 
+@<pointer-name> := <arithmetic-expression> 
+@ 
+is the symbol for removing indirection. It means get the contents of <pointer-name>, not the item pointed to. 
+<pointer-name> 
+is the name of a previously declared standard or extended pointer. 
+<arithmetic-expression> 
+is an arithmetic expression that evaluates to one of the following values: 
+• If <pointer-name> is a standard STRING pointer, use a 16-bit byte address in the lower 32K area. 
+• If <pointer-name> is a standard non-STRING pointer, use a 16-bit word address in the 64K area. 
+• If <pointer-name> is an extended pointer of any type, use a 32-bit byte address. For details, see Appendix A. 
+If the value represents the contents of another pointer or the address of an array or structure, use the following form as described under "Pointer Declaration" in this section: 
+@ <previous-identifier> 
+-'1J82581 AOO 3/85 
+POINTERS Pointer Assignments 
+10-7 
+POINTERS
+Pointer Assignments 
+Examples of Standard Pointer Assi9!!_~ent~ 
+1. This example assigns the address of an INT array to standard pointers of different types. The FIXED pointer allows viewing of the array four words at a time; the INT(32) pointer al:ows viewing two words at a time. 
+INT .array[0:99]; FIXED .quad"pt; INT( 32) .dbl"pt; 
+@quad"pt := @array[O]; 
+@dbl"pt := @array[O]; 
+!Declares INT array !Declares FIXED pointer !Declares INT(32) pointer 
+!Assigns array address to ! FIXED pointer
+!Assigns array address to ! INT(32) pointer 
+2. This example assigns the converted byte address of an INT array element to a STRING pointer, allowing byte access to the word element: 
+STRING .s"ptr; INT .word[0:5]; 
+@s"ptr := @word[3] '<<' 1; 
+!Declares STRING pointer !Declares INT array 
+!Assigns byte address of 
+Examples of Extended Pointer Assigments 
+1. This example uses the $XADR standard function to return address for a STRING array, then assigns the address to extended pointer: 
+10-8 
+INT .EXT ext"ptr; STRING s"array[O:l]; 
+@ext"ptr := $XADR(s"array); 
+!Declares extended pointer !Declares STRING array 
+!Assigns 32-bit address of ! array returned by $XADR 
+2. This example uses the $XADR standard function to return the 32-bit address of an INT item to which a standard pointer points, then assigns the address to an extended pointer: 
+INT .EXT ext"ptr;
+INT .std"ptr := %100000; 
+@ext"ptr := $XADR(std"ptr); 
+!Declares extended pointer !Declares INT standard pointer 
+!Assigns 32-bit address of INT ! item returned by $XADR 
+! "word[3]" (converted ! bit shift operation) 
+by 
+a 32-bit an 
+-'ff 82581 AOO 3/85 
+POINTERS Data Access Through Pointers 
+3. The following example assigns the first byte address in the upper 32K of the current data segment to an extended pointer: 
+INT .EXT topAptr; !Declares extended pointer 
+@topAptr := %200000D; !Assigns first byte address in ! upper 32K area to extended 
+! pointer 
+4. This example shows how to build your own address in the user code space. The $DBLL standard function returns an INT(32) value from 
+two INT values, the first becoming the upper 16 bits and the second becoming the lower 16 bits. After the assignment, the pointer can point to the fourteenth byte or seventh word of the code space. 
+INT .EXT extAptr; !Declares extended pointer 
+@extAptr := ($DBLL (2, 7)) '<<' 1;
+!Assigns~user-code-segment a d d r e s s 
+DATA ACCESS THROUGH POINTERS 
+To access the data to which a pointer points, you simply use its name in statements. You can use standard and extended pointers in any statement, except that an extended pointer cannot be the obj~ct of a 
+SCAN or RSCAN statement. 
+Examples of Data Access Through Pointers 
+1. This example assigns a new value to the item to which a standard pointer points: 
+INT .addr[0:2] := [1,2,3]; INT .sp := @addr[O]; 
+sp := 4; 
+!Declares and initializes array !Declares and initializes standard ! pointer with address of "addr[O]" !Assigns 4 to "addr[O]" 
+2. This example assigns a value to the location to which an extended pointer points: 
+4'82581 AOO 3/85 
+INT .EXT ep := %200000D; 
+ep := 5; 
+!Declares and initializes extended ! pointer with address of first
+! word in upper 32K area
+!Assigns 5 to location %2000000 
+10-9 
+POINTERS
+Data Access Through Pointers 
+3. The following example shows data being accessed through extended 
+10-10 
+pointers in various 
+INT var"'a;
+INT var"'b;
+INT .ptr;
+INT .EXT ptr"'a; INT .EXT ptr"'b; 
+statements: 
+var"'a := ptr"'a; ptr"'a := var"'a; ptr"'a := ptr"'b; var"'a ':=' ptr"'a ': =' ptr"'a ' : =' 
+IF var"'a = ptr"'a 
+SCAN ptr"'a WHILE var"'a ':=' var"'b ptr"'a ':= ' var"'b 
+!Declares variables 
+!Declares standard pointer !Declares extended pointers 
+!Assignment statements 
+!Move statements 
+! IF-THEN-ELSE statement 
+!Invalid SCAN statement !Invalid move; see Note 1 !Invalid move; see Note 2 
+ptr"'a var"' a ptr"'b 
+FOR FOR FOR FOR 
+10;
+10;
+10;
+10 THEN 
+" ";
+FOR 10 -> @ptr"'a; FOR 10 -> @ptr; 
+Note 1. Since "var"'a" and "var"'b" have 16-bit addresses, the variable to the right of the -> symbol must also be a 16-bit variable. 
+Note 2. Since "ptr"'a" is a 32-bit extended address, the variable to the right of the -> symbol must also be a 32-bit variable; "ptr" is a 16-bit variable. 
+'1"t12581 AOO 3/85 
+ADDRESSES OF OTHER ITEMS 
+In addition to its use with pointers, the @symbol lets you obtain the addresses of other items. 
+The syntax for getting addresses of other items is: 
+@<item-name> 
+@ 
+is the symbol for removing indirection. It means get the address of <item-name>. 
+<item-name> 
+is the name of an existing variable, label, subprocedure, or procedure. 
+Table 10-1 summarizes the address yielded by the @symbol for each item. This table does not apply to pointers. 
+Table 10-1. Addresses of Items 
+Item 16-Bit 
+STRING variable Byte address Non-STRING variable Word address 
+Value 
+of variable
+of variable
+of structure occurrence
+of substructure occurrence
+of label in current user code 
+Structure Substructure Label 
+Subprocedure 
+Procedure 
+Word address Byte address Word address segment 
+Word address
+code segment
+Procedure entry point (PEP) number of the procedure LORed with code space information 
+~ 82581 AOO 3/85 
+10-11 
+POINTERS Addresses of Other Items 
+of entry point in current user 
+POINTERS
+Addresses of Other Items 
+E.Kamples 
+1. This example returns the address of a simple variable: 
+INT a; !Declares simple variables INT b; 
+b := @a; !Returns address of "a" 
+2. This example returns the addresses of array elements: 
+10-12 
+~ 82581 AOO 3/85 
+INT .m[0:2] INT nl;
+INT n2; 
+nl := @m[0]; n2 := @m[1]; 
+!Declares array
+!Declares simple variable !Declares simple variable 
+!Returns address of "m[O]" !Returns address of "m[l]" 
+3. This example returns the address of a label: 
+LABEL loop; INT address; 
+loop : <statement>; 
+address := @loop; 
+!Declares label !Declares variable 
+!Labels statement 
+!Returns label address 
+4.. The following example returns the PEP table number in bits 7 through 15 of the address. (For more information on the PEP, see the System Description Manual for your system). 
+PROC mainAproc MAIN; BEGIN 
+INT pepnum; 
+pepnurn := @mainAproc.<7:15>; 
+END; 
+!Declares procedure 
+!Declares variable 
+!Returns PEP information 
+TEMPORARY POINTERS 
+A temporary pointer is a direct INT variable whose contents become the address of another data item. 
+The syntax for specifying a temporary pointer is: 
+.<direct-int-variable> 
+. (period) 
+is the indirection symbol for standard addressing. It causes the contents of <direct-int-variable> to be used as a word address. 
+<direct-int-variable> 
+is a previously declared direct variable of type INT located in the current data segment. 
+You can specify a temporary pointer in any INT arithmetic expression. 
+Referencing the variable without the period accesses the variable. Using the period accesses the item to which the variable points. 
+Example 
+In this example, the direct variable "a" becomes a temporary pointer: 
+'1'82581 AOO 3/85 
+10-13 
+INT b;
+INT a := 5; 
+b := a; .a:=O; b:=.a; 
+!Declares "b"
+!Declares "a" and initializes it with 5 
+!"b" equals "a" now
+!Temporary pointer; assigns 0 to G[5] !"b" equals 0 now 
+POINTERS Temporary Pointers 
+SECTION 1 1 
+STRUCTURES 
+This section describes structure and structure pointer declarations, storage, and data access. 
+A structure is a collectively stored set of data items that you can access individually or as a group. Structures can contain simple variables, arrays, and other structures (called substructures). 
+Structures usually contain related data items such as the fields of a file record. For example, in an inventory control application, a structure can contain an item number, the unit price, and the quantity on hand. 
+They can contain multidimensional arrays, each consisting of any number of arrays. 
+Global or local structures can be direct or indirect. Sublocal structures must be direct. Since the primary storage areas are limited in size, you should declare indirect global and local structures. TAL manages indirection for you by providing a standard pointer and initializing it with the location of the structure data. You access structure items by referencing the qualified structure name. 
+A structure pointer associates a previously declared structure with the location to which the pointer points. You manage indirection by 
+declaring a standard or extended structure pointer and initializing it with a value. You access structure items by referencing the qualified pointer name. 
+"'182581 AOO 3/85 
+11 -1 
+STRUCTURES Structure Forms 
+STRUCTURE FORMS 
+A structure declaration can have one of three forms: 
+• Definition--This form declares a structure, describes its body, and allocates storage for it. 
+• Template--This form declares a structure template. It describes the structure body but allocates no storage for it. 
+• Referral--This form declares a structure and allocates storage for it. It describes the structure body by referencing a 
+previously declared structure or structure pointer. 
+The structure body contains declarations for arrays, simple variables, substructures, FILLER bytes, or redefinitions. 
+STRUCTURE DECLARATIONS 
+Definition, template, and referral structures and structure body entities are described separately on the following pages. This discussion is for global, local, and sublocal data, not for formal parameters. 
+Definition Structure Declaration 
+The definition form declares a structure, describes its body, and allocates storage for it. 
+11-2 
+'1j82581 AOO 3/85 
+STRUCTURES Definition Structure Declaration 
+The syntax for the definition structure declaration is: 
+STRUCT [ . ] <identifier> 
+<structure-body> 
+• (a period) 
+"[" <lower-bound> <upper-bound> "]" ] 
+is the indirection symbol for standard addressing. 
+<identifier> 
+is the name of the structure. 
+<lower-bound> 
+is a constant expression in the range -32768 through 32767 that specifies the first structure occurrence for which to allocate storage. The default value is 0 (one occurrence). Each occurrence is one copy of the structure. 
+<upper-bound> 
+is a constant expression in the range -32768 through 32767 that specifies the last structure occurrence for which to allocate storage. The default value is 0 (one occurrence). 
+<structure-body> 
+contains declarations for data, substructures, FILLER bytes, or redefinitions, as described under "Structure Body" in this section. 
+The size of one occurrence of a structure must not exceed 32,767 bytes. 
+"'f82581 AOO 3/85 
+11-3 
+STRUCTURES
+Definition Structure Declaration 
+The following example declares 50 occurrences of a definition structure: 
+STRUCT .inventory1[0:49]; BEGIN 
+INT item;
+INT price; INT quantity; 
+END; 
+Structure Storage Allocation 
+For direct structures, TAL allocates storage for each occurrence of the structure in a primary global or local area or in the sublocal area. Sublocal structures must be direct. 
+For indirect structures, TAL allocates primary global or local storage for a 16-bit standard pointer. It then allocates storage in the corresponding secondary area for each structure occurrence. 
+Structures are word addressed. That is, TAL starts each structure occurrence on a word boundary. Within each structure occurrence, TAL allocates storage for each item and adds a pad byte as needed to fill an unused byte caused by the need for INT structure items to be aligned on word boundaries. 
+The following example shows storage allocation for two occ~.rrences of a structure (slants denote a pad byte): 
+11-4 
+~ 82581 AOO 3/85 
+STRUCT a[O:l]; BEGIN 
+s l 
+a[O] x 
+s 2 
+Ill 
+Ill 
+STRING INT x; STRING 
+END 
+s l ; 
+s 2 ; 
+sl Ill -- 
+a[l] x 
+s2 Ill 
+Template Structure Declaration 
+The template form describes a structure body but allocates no space for it. The syntax for the template structure declaration is: 
+STRUCT <identifier> (*) 
+<structure-body> 
+<identifier> 
+( *) 
+is the name of the template structure. 
+is the symbol that identifies the structure as a template. 
+<structure-body> 
+contains declarations for data, substructures, FILLER bytes, or redefinitions, as described under "Structure Body" in this section. 
+Templates have meaning only when you reference them in subsequent referral structure declarations or structure pointer declarations. The subsequent declarations allocate space for a structure body identical to that of the template. 
+TAL ignores the indirection symbol if specified. 
+An example of a template structure declaration is: 
+STRUCT inventory2 ( *) ; BEGIN 
+INT item; INT price; END; 
+-'f82581 AOO 3/85 
+11-5 
+STRUCTURES Template Structure Declaration 
+STRUCTURES
+Referral Structure Declaration 
+Referral Structure Declaration 
+The referral form declares and allocates storage for a structure described in a previously declared structure or structure pointer. The referral form has no body of its own. 
+The syntax for the referral structure declaration is: 
+STRUCT [ . ] <identifier> ( <referral> ) 
+[ "[" <lower-bound> : <upper-bound> "]" ] 
+. (a period) 
+is the indirection symbol for standard addressing. 
+<identifier> 
+is the name of the new structure. 
+<referral> 
+is the name of a previously declared structure or structure pointer. 
+<lower-bound> 
+is a constant expression in the range -32768 through 32767 that specifies the first structure occurrence for which to allocate storage. The default value is 0 (one occurrence). Each occurrence is one copy of the structure. 
+<upper-bound> 
+is a constant expression in the range -32768 through 32767 that specifies the last structure occurrence for which to allocate storage. The default value is 0 (one occurrence). 
+11-6 
+"'f82581 AOO 3/85 
+, 
+STRUCTURES Referral Structure Declaration 
+TAL allocates storage for a structure with the addressing mode and number of occurrences specified in the referral declaration, not those specified in the previous declaration. TAL uses only the body of the previous declaration for the new structure. 
+The following example declares a template structure and a referral structure that references the template structure: 
+STRUCT record (*); BEGIN 
+INT name; INT addr; INT acct; 
+END; 
+!Declares template structure 
+STRUCT .customer (record) (1:50]; !Declares referral structure 
+Aff82581 AOO 3/85 
+11-7 
+STRUCTURES
+Structure Body - Data Declarations 
+STRUCTURE BODY 
+The structure body is a BEGIN-END construct that can contain declarations for: 
+• Data Items--Arrays and simple variables 
+• Substructures--Structures nested within the primary structure 
+• FILLER Bytes--Place-holding bytes 
+• Redefinitions--Items that redefine data i~ems or substructures 
+Data Declarations 
+Syntax for data declarations is described in Section 8, "Simple Variables," and Section 9, "Arrays," with the following differences: 
+•	You cannot initialize any variables. 
+•	You cannot declare read-only arrays. 
+•	You cannot use indirection. 
+•	You can specify array bounds of [0:-1]. 
+Bounds of [0:-1] place the identifier in the symbol table so you can reference it, but allocates no storage for the array. 
+Storage Allocation 
+TAL allocates storage for data within structures by aligning word- addressed items on word boundaries and STRING items on byte boundaries, adding a pad byte where needed to fill an unused byte. 
+11-8 
+;fl82581 AOO 3/85 
+Examples of Data Declarations 
+1. The following example shows data declarations in a structure body: 
+LITERAL len = 100; 
+STRUCT .strl; BEGIN 
+STRING s[O:len-1]; INT index;
+INT count; 
+END; 
+!Number of array elements 
+!Begins structure body !Declares array
+!Declares simple variable !Declares simple variable !Ends structure body 
+2. The following example shows storage allocation for data inside a structure (slants denote a pad byte): 
+STRUCT .padding; 
+BEGIN 
+STRING first; 
+first Ill second 
+INT second; a[O] a[l] 
+STRING a[0:2]; a[2] b[O] 
+STRING b[0:2]; b[l] b[2] 
+STRING c[l:3]; c[l] c[2] 
+INT third; c[3] 
+Ill 
+END; 
+third 
+3. This example declares an array with bounds of [0:-1], which allows 
+access to subsequent structure items using the 
+array identifier: 
+b[O] 
+b[2] 
+"f82581 AOO 3/85 
+11-9 
+STRUCT x ; BEGIN 
+INT(32) d[0:-1]; STRING a;
+STRING b[0:2]; END; 
+a 
+b[l] 
+x.d := OD; 
+!Sets "a" and "b[0:2]" to 0 
+STRUCTURES Structure Body - Data Declarations 
+STRUCTURES
+Structure Body - Substructure Declaration 
+Substructure Declaration 
+A substructure is a structure embedded within another structure or substructure. 
+The syntax for the substructure declaration is the same as the syntax previously defined under "Definition Structure Declaration," except that you cannot use the indirection symbol. 
+Substructures differ from structures as follows: 
+•	Substructures must be directly addressed. 
+•	You can nest substructures to any practical level; that is, you can declare a substructure within a substructure within a substructure, and so on. 
+•	You can specify lower and upper bounds of [0:-1]. This places the substructure in the symbol table but allocates no storage; the substructure is addressable but uses no memory. 
+•	Substructures are byte addressed. Structures are word addressed. 
+•	TAL allocates storage for substructures starting on byte boundaries, if possible. Structures always start on word boundaries. 
+Examples of Substructure Declarations 
+1~ This example constructs a two-dimensional array. It consists of two occurrences of a structure, each of which contains 50 occurrences of a substructure: 
+11.-10 
+LITERAL last = 49; 
+STRUCT .warehouse[O:l]; BEGIN 
+STRUCT inventory [O:last]; BEGIN 
+INT item"'number; INT price;
+INT on"'hand; 
+END; END; 
+!Last item in inventory 
+!Two warehouses 
+!Fifty items in each warehouse 
+-'1H2581 AOO 3/85 
+STRUCTURES Structure Body - Substructure Declaration 
+2. The following example shows substructures used for the Command Interpreter start-up message: 
+"'82581 AOO 3/85 
+STRUCT .startup; BEGIN 
+INT msgcode; STRUCT default; 
+BEGIN
+INT volume[0:3]; INT subvol[ 0: 3]; 
+!Substructure declaration 
+END; STRUCT 
+inf ile; 
+!Substructure 
+!Substructure 
+declaration 
+declaration 
+BEGIN
+INT volume[0:3]; INT subvol[ 0: 3]; INT fname[0:3]; 
+END;
+STRUCT outf ile; 
+BEGIN
+INT volume[0:3]; INT subvol[ 0: 3]; INT fname[0:3]; 
+END;
+STRING param[0:131]; END; 
+!Program parameters 
+3. The following example shows nested substructure declarations: 
+STRUCT .milAbranch; BEGIN 
+STRUCT div[0:3]; BEGIN 
+STRUCT reg[0:3]; BEGIN 
+STRUCT batt[O:l]; BEGIN 
+STRUCT comp[0:3]; BEGIN 
+STRUCT plat[0:3]; BEGIN 
+INT infantry; END; !Of "plat" 
+END; !Of "comp" END; !Of "batt" 
+END; !Of "reg" END; !Of "div" 
+END; !Of "milAbranch" 
+!Substructure 
+!Nested substructure 
+!Nested substructure 
+!Nested substructure 
+!Nested substructure 
+11-11 
+S'I~RUCTURES 
+Structure Body - Substructure Declaration 
+4. This example shows storage for substructure occurrences that begin on byte boundaries because the substructure not only follows a STRING item ("x") and but also starts with a STRING item ("aa"): 
+STRUCT s ;
+BEGIN x STRING x ;
+STRUCT sub[0:2]; 
+aa ---- 
+--- aa 
+aa 
+Ill 
+BEGIN STRING a a ; 
+INT b; STRING c; END; 
+!Substructure ! declaration 
+b 
+b 
+INTy; c
+END; --- 
+5. This example shows storage for substructure occurrences that begin on word boundaries because the substructure starts with an INT 
+item ("aAa"): 
+11-12 
+STRUCT t l ;
+BEGIN x /// STRING x ;
+STRUCT t2 [0:1]; !Substructure 
+BEGIN ! declaration INT aAa;
+INT b; 
+STRING c; c 
+END; !Of substructure INT y; 
+END; !Of structure 
+aA a 
+b
+----- 
+/// 
+c 
+c 
+b 
+y 
+aA a 
+b 
+c /// ---- 
+y 
+---- 
+~182581 AOO 
+3 / 8 5 
+~ 
+FILLER Declaration 
+A FILLER byte provides a place holder for structure data or space that your program does not use. 
+The syntax for the FILLER declaration is: 
+FILLER <constant-expression> 
+<constant-expression> 
+is a positive INT constant value that specifies the number of bytes of FILLER. 
+The word FILLER is a reserved word only within the scope of a structure declaration. You cannot reference FILLER byte locations. 
+FILLER declarations contribute to clearer source code. For example, you can use FILLER bytes: 
+• To define data that appears in a structure but is not used by your program 
+• To document word-alignment pad bytes inserted by TAL 
+• To provide place holders for unused space 
+The following example shows FILLER declarations: 
+LITERAL last = 11; 
+STRUCT .filler[l:last]; BEGIN 
+STRING byte[0:2]; FILLER 1;
+INT wordl;
+INT word2; 
+INT(32) integer32; FILLER 30;
+END; 
+!Last occurrence 
+!Documents word-alignment pad byte 
+!Place holder for unused space 
+For a FILLER example defining unused data, see "Substructure Redefinition" (example 4) in this section. 
+Af'82581 AOO 3/85 
+11-13 
+STRUCTURES Structure Body - FILLER Declaration 
+STRUCTURES
+Structure Body - Redefinitions 
+Redefinitions 
+A redefinition declares a new name and description for an existing data item or substructure within a structure. 
+Data Item Redefinition 
+The syntax for the data item redefinition declaration is: 
+<type> <identifier> [ "[" <lower-bound> : <upper-bound> "]" ] 
+11-14 
+<type> 
+is one of the following data types: 
+STRING INT INT(32) 
+FIXED [ REAL REAL(64) 
+<identifier> 
+<fpoint> ) ] 
+is the name of the new data item that redefines an existing data item in the structure. A data item is a simple variable or an array. 
+<lower-bound> 
+is an INT constant expression in the range -32768 through 32767 that defines the first array element. The default value is 0 (one element). 
+<previous-identifier> 
+AJI132581 AO0 3I85 
+<upper-bound> 
+is an INT constant expression in the range -32768 through 32767 that defines the last array element. The default value is 0 (one element). 
+<previous-identifier> 
+is the name of a data item previously declared in the same structure. You cannot specify an index with this name. 
+When you redefine data items, the following rules apply: 
+•	The new item must be on the same level as the previous item. 
+•	The new item must have the same, or shorter, length as the previous item. 
+•	You can redefine arrays contained in structures and substructures. For arrays outside structures, see Section 12, "Equivalenced Variables." 
+•	The redefinition must start at element [O] of the previous identifier. 
+•	You cannot redefine the data type of a STRING item that begins on an odd-byte address. 
+The following example redefines an INT array as an INT(32) array. The redefinition begins at "a[O]": 
+STRUCT . s ; BEGIN 
+INT a[-2:3]; INT(32) b[1:2] 
+END; 
+= a; 
+s[O] a[-2] 
+a[-1] 
+a[O] 
+a[l] 
+. . 
+_,.1182581 AOO 
+3 / 8 5 
+STRUCTURES Structure Body - Redefinitions 
+I- b[l] - 
+11-15 
+STRUCTURES
+Structure Body - Redefinitions 
+Substructure Redefinition 
+The syntax for the substructure redefinition declaration is: 
+STRUCT <identifier> [ "[" <lower-bound> : <upper-bound> "]" 
+11-16 
+<structure-body> 
+<identifier> 
+is the name of the new substructure that redefines a previously declared substructure. 
+<lower-bound> 
+is a constant expression in the range -32768 through 32767 that defines the first substructure occurrence. The default value is 0 (one occurrence). Each occurrence is one copy of the substructure. 
+<upper-bound> 
+is a constant expression in the range -32768 through 32767 that defines the last substructure occurrence. The default value is 0 (one occurrence). 
+<previous-identifier> 
+is the name of a substructure that was previously declared in the same structure. No index is allowed with this name. 
+<structure-body> 
+contains declarations for data, substructures, FILLER bytes, or redefinitions. 
+If you do not specify lower and upper bounds, or if the upper bound is equal to O, the new substructure and the previous substructure 
+= <previous-identifier> ; 
+Af82581 AOO 3/85 
+STRUCTURES Structure Body - Redefinitions 
+occupy the same space and have the same offset from the beginning of the structure. 
+Rules for redefining substructures are: 
+• The new substructure must be on the same level as the previous substructure. 
+• The new substructure should have the same, or shorter, length as the previous substructure. 
+• Both substructures must have the same alignment. If the previous substructure starts on an odd byte, the first data item in the new substructure must be a STRING item. 
+Examples for redefinition declarations are shown below. 
+1. In this example, the new substructure is smaller than the previous substructure; the redefinition is proper: 
+STRUCT strl; BEGIN 
+STRUCT subl; BEGIN 
+INT intl; END; 
+!Declares "subl" 
+STRUCT sub2 = subl; !Redefines "subl" as "sub2" BEGIN 
+STRING strl; 
+substructure; TAL issues a warning: 
+END;
+END; subl 
+sub~I....._s_t_r_1_ _ 1_1_1___. 
+__.I ~
+2. In this example, the new substructure is larger than the previous 
+~ 82581 AOO 3/85 
+11-17 
+STRUCT strl; BEGIN 
+STRUCT subl; BEGIN 
+STRING strl; 
+!Declares "subl" 
+END;
+STRUCT sub2 = subl; !Redefines "subl" as "sub2" 
+BEGIN
+INT intl; 
+END;
+END; subl 
+~ sub~ 
+.I..._ _ _i_n_t_1_ _ 
+....___ _i_n_t__i _ 
+....._s_t_r_1_....._1_1_1___.I 
+__, 
+STRUCTURES
+Structure Body - Redefinitions 
+3. In this example, both substructures ("b" and "c") have the same alignment as required. In this case, both begin on an odd-byte boundary: 
+STRUCT a ; BEGIN 
+STRING x ; STRUCT b; BEGIN 
+STRING 
+END; STRUCT c 
+BEGIN STRING END; 
+END; 
+y; 
+= b; 
+!"b" starts on odd byte 
+!Redefines "b" as "c", also on odd byte 
+z; b 
+c 
+,_x___,___Y___.I ~
+4. This example redefines the format of a substructure record: 
+11-18 
+4~82581 AOO 
+3 / 8 5 
+STRUCT .nameArecord; BEGIN 
+STRUCT wholeAname; BEGIN 
+STRING firstAname[O:lO]; STRING middleAname[O:lO]; STRING lastAname[0:15]; END; 
+STRUCT initials = wholeAname; !Redefines "whole"'name" as BEGIN ! "initials"
+STRING f irstAinitial;
+FILLER 10; 
+STRING middleAinitial; FILLER 10;
+STRING last~initial; FILLER 15; 
+END; END; 
+~I !Declares "wholeAname" 
+z 
+ACCESSING STRUCTURED DATA 
+To access a definition or referral structure (whether direct or indirect), you specify its identifier in a statement. For a move, 
+SCAN, or RSCAN statement or a reference parameter, specify the unqualified structure or substructure identifier. 
+For an assignment statement, specify the fully qualified identifier of the structure item, using the following form, with or without indexes: 
+<struct-name> [ [.<substruct-name>] ... ] .<item-name> 
+All indexes must be signed INT arithmetic expressions. An example of an indexed structure identifier is: 
+record[i].table[2].item[x] 
+Examples of Accessing Structured Data 
+1. The following example shows how nesting affects the qualification level. In the declaration on the left, the full qualification for "item" is "outer.innerA3.item." In the declaration on the right, it is "outer.innerA1.innerA2.innerA3.item." 
+"'82581 AOO 3/85 
+11-19 
+STRUCT .outer BEGIN 
+STRUCT innerAl; BEGIN 
+END;
+STRUCT innerA2; 
+BEGIN 
+END;
+STRUCT innerA3; 
+BEGIN
+INT item; 
+END; END; 
+STRUCT .outer; BEGIN 
+STRUCT innerAl; BEGIN 
+STRUCT innerA2; BEGIN 
+STRUCT innerA3; BEGIN 
+INT item; 
+END; END; 
+END; END; 
+STRUCTURES Accessing Structured Data 
+STRUCTURES
+Accessing Structured Data 
+2. The following example shows how to access an item in a. definition structure: 
+STRUCT .d; BEGIN 
+INT a; STRING b ; REAL c[0:2]; END; 
+d.a := 2; 
+!Declares definition structure "d" 
+!Assigns value to "a" in structure "d" 
+3. The following example shows how to access an item in a referral structure that references a template structure: 
+11-20 
+~ 82581 AOO 3/85 
+STRUCT t (*); BEGIN 
+INT a; STRING b ; REAL c[0:2]; END; 
+STRUCT .r (t); 
+r.a := 2; 
+!Declares template structure "t" 
+!Declares referral structure "r" 
+!Assigns value to "a" in structure "r" 
+STRUCTURES Accessing Structured Data 
+4. These code fragments access a three-dimensional array structure: 
+Afj82581 AOO 3/85 
+INT s; INT d; INT c; 
+STRUCT .chain; BEGIN 
+INT(32) chainAtot; STRUCT store[0:2]; 
+!Index for store sales
+!Index for department sales !Index for each clerk's sales 
+BEGIN
+INT(32) storeAtot; 
+STRUCT dept[0:2]; BEGIN 
+INT(32) deptAtot; STRUCT clerk[O:l]; 
+BEGIN INT elk; INT amt; 
+END; !Ends "clerk" END; !Ends "dept" 
+END; !Ends "store" END; !Ends "chain" 
+!The following code updates each clerk's records using the ! clerk number and amount entered from terminal: 
+FOR s := 0 TO 2 DO FOR d := 0 TO 2 DO 
+FOR c := 0 TO 1 DO
+IF chain.store[s].dept[d].clerk[c].clk = enteredAclkAno 
+THEN chain.store[s].dept[d].clerk[c].amt := enteredAamt; 
+!The following code updates department, store, and chain ! totals: 
+FOR s := 0 TO 2 DO BEGIN 
+FOR d := 0 TO 2 DO BEGIN 
+FOR c := 0 TO 1 DO chain.store[s].dept[d].deptAtot := 
+chain.store[s].dept[d].deptAtot + $DBL(chain.store[s].dept[d].clerk[c].amt); 
+chain.store[s].storeAtot := chain.store[s].storeAtot + chain.store[s].dept[d].deptAtot; 
+END;
+chain.chainAtot := chain.chainAtot + 
+END; 
+chain.store[s].storeAtot; 
+11-21 
+STRUCTURES Structure Functions 
+Structure Functions 
+TAL provides the following standard functions for processing of structured data: 
+• $LEN--Returns the length in bytes of one occurrence of an item. 
+• $0FFSET--Returns an item's offset in bytes from the structure base~ 
+• $0CCURS--Returns the number of occurrences of an item. 
+• $TYPE--Returns the data type of an item. 
+The following example uses the $OCCURS and $LEN functions to read structured data: 
+INT record""num; 
+STRUCT emp""data(*); BEGIN 
+INT number; INT dept; 
+STRING ssn[O:ll]; FIXED(2) salary; END; 
+PROC main""proc MAIN; BEGIN 
+STRUCT .job""data (emp""data) [0:5]; 
+!Template structure 
+FOR record""num := 0 TO $OCCURS (jobAdata) - 1 DO CALL READ(discf ile, 
+job""data[recordAnum], !Buffer $LEN(job""data), !Record length numAread); 
+END; 
+For more information on these functions, see Section 17, "Standard Functions." 
+11-22 
+!Referral structure 
+A~ 82581 AOO 3/85 
+STRUCTURE POINTER DECLARATION 
+The structure pointer declaration associates a structure with the memory location to which the pointer points. Therefore, you can access the location to which the pointer points by referencing a structure item. 
+The syntax for the structure pointer declaration is: 
+{ INT } { • } <identifier> ( <referral> ) { STRING } { .EXT } 
+INT 
+:= <initialization> ] 
+[ , { • } <identifier> ( <referral> ) { .EXT } 
+[ :=<initialization> ] ] ..• 
+indicates the pointer contains a word address. 
+STRING 
+indicates the pointer contains a byte address. 
+• (period) 
+• EXT 
+is the indirection symbol for standard addressing. 
+is the indirection symbol for extended addressing. It is a reserved word only when followed by <identifier>. At least one space must precede and follow the symbol. 
+~ 82581 AOO 3/85 
+11-23 
+STRUCTURE POINTERS Structure Pointer Declaration 
+STRUCTURE POINTERS
+Structure Pointer Declaration 
+<identifier> 
+is the name of the structure pointer. 
+<referral> 
+is the name of a previously declared structure or structure pointer. 
+<initialization> 
+is a constant expression (global scope) or an arithmetic expression (local or sublocal scope), as follows: 
+• If <identifier> is a standard STRING pointer, use a 16-bit byte address in the lower 32K area. 
+• If <identifier> is a standard INT pointer, use a 16-bit word address in the 64K area. 
+• If <identifier> is an extended pointer of any type, use a 32-bit byte address. For details, see Appendix A~ 
+, ____________, 
+Before referencing a structure pointer, be sure you have assigned a value to it, either in the declaration or in a subsequent statement 
+(see "Structure Pointer Assignments" in this section). References to uninitialized pointers cause undefinable program execution. 
+Standard STRING structure pointers can access STRING structure items only. Standard INT pointers and extended STRING or INT pointers can access structure items of any type. However, if an INT pointer contains an address in the upper 32K area, you cannot access STRING 
+items with that pointer. 
+Global pointers receive their initial values when you compile the source code. Local and sublocal pointers receive their initial values each time the procedure or subprocedure is activated. 
+11-24 
+.,J 
+82581 AOO 3/85 
+Examples of Structure Pointer Declarations 
+1. This example declares a template structure and a structure pointer that references the template and initializes the pointer with a location in the upper 32K area: 
+STRUCT names (*): !Declares template structure BEGIN 
+INT filename[O:ll]: END: 
+INT .strucAptr (names) := %100000: !Declares structure pointer 
+2. This example declares an extended structure pointer that references the structure pointer declared in Example 1 and initializes it with a location in the upper 32K area: 
+STRING .EXT exAstrcAptr (strucAptr) := %200000D: 
+Storage Allocation 
+TAL allocates primary storage for the structure pointer. A standard pointer gets one word of primary storage: an extended pointer gets a doubleword. You must allocate the memory location to which the pointer points. 
+TAL emits more efficient machine code if it can store extended pointers between G[O] and G[63] or between L[O] and L[63]. Thus, extended pointers should precede other global or local declarations. 
+~ 82581 AOO 3/85 
+11-25 
+STRUCTURE POINTERS Storage Allocation 
+STRUCTURE POINTERS
+Structure Pointer Assignments 
+Structure Pointer Assignments 
+The syntax for a structure pointer assignment is: 
+@<pointer-name> := <expression> 
+@ 
+is the symbol for removing indirection. It means get the contents of <pointer-name>, not the item to which it points. 
+<pointer-name> 
+is the name of a previously declared standard or extended structure pointer. 
+<expression> 
+is an arithmetic expression: 
+If <pointer-name> is a standard STRING structure pointer, use a 16-bit byte address in the lower 32K area. 
+If <pointer-name> is a standard INT structure poin·ter, use a 16-bit word address in the 64K area. 
+11-26 
+~ B2581 AOO 3/85 
+• 
+• 
+• 
+If <pointer-name> is an extended structure pointer of any type, use a 32-bit byte address. For details, see Appendix A. 
+STRUCTURE POINTERS Accessing Data Using Structure Pointers 
+The following example assigns the address of the third occurrence of a structure to a standard structure pointer: 
+STRUCT .struc[0:2]; BEGIN 
+INT i; STRING s ; END; 
+INT .strAptr (struc): 
+@strAptr := @struc[2]; 
+!Declares structure "struc" 
+!Declares structure pointer 
+!Assigns address of "struc[2]" to ! structure pointer 
+Accessing Data Using Structure Pointers 
+To access a structure item, you reference the pointer name in a statement. In move, SCAN, or RSCAN statements or reference parameters, specify the unqualified pointer name. Extended pointers cannot be the object of SCAN or RSCAN operations. 
+In assignment statements, specify the fully qualified pointer name using the following form, with or without indexes: 
+<pointer-name> [ [.<substruct-name>] ••• ] .<item-name> 
+An example of a qualified structure pointer name is: 
+strucAptr.records.customer.name 
+For both standard and extended structure pointers, the index must be a signed INT arithmetic expression. 
+~ 82581 AOO 3/85 
+11-27 
+STRUCTURE POINTERS
+Accessing Data Using Structure Pointers 
+Standard Structure Pointer Accessing Examples 
+1. The following example uses standard structure pointers to access INT structure items in the upper 32K of data space: 
+?DATAPAGES 64 !Gets maximum data stack 
+STRUCT names (*); !Declares template structure BEGIN 
+INT filename[O:ll]; END; 
+INT .nameAptrl(names) := %100000; !Points to beginning of ! upper 32K area 
+INT .nameAptr2(names) := %110000; !Points to upper half of ! upper 32K area 
+PROC mainAproc MAIN; 
+.
+nameAptrl.filename[O] ' .- ' "$SYSTEM SYSTEM EDIT "; 
+!Accesses structure items 
+END; 
+2. In the following example, a structure pointer points into an existing structure: 
+11-28 
+.-
+nameAptr2.filename[O] ' : =' "$DATA OFFICE PRODUCT "; 
+STRUCT .data2[0:2]; BEGIN 
+INT il; INT i2; INT i3; STRING s l ; 
+END; 
+!Declares definition structure 
+INT .pnt2 (data2) := @data2[1]; !Declares and initializes ! structure pointer 
+pnt2.i2 := %1414;
+pnt2.sl := %3; !Accesses structure items 
+"''fii 82581 AOO 3/85 
+STRUCTURE POINTERS Accessing Data Using Structure Pointers 
+3. In the following example, a structure pointer points to the beginning of a buffer, thereby imposing the structure on top of the buffer: 
+INT .recbuf[0:7] :=[1,%22,%23,%24,%25,"ABCDE"]; !Buffer INT numl; 
+Aft82581 AOO 3/85 
+11-29 
+STRUCT data (*); BEGIN 
+INT codel;
+I NT i l [ 0 : 3 ] ; STRING sl[ 0: 4]; 
+END; 
+INT .pnt2 (data) := @recbuf; 
+numl := pnt2.il[2]; 
+!Declares template structure 
+!Declares and initializes ! structure pointer 
+!Accesses structure item 
+4. In the following example, a STRING standard structure pointer accesses a STRING item. You must convert the word address of the structure to a byte address before assigning it to the pointer: 
+STRUCT .data[O:l]; BEGIN 
+!Declares definition structure 
+STRING STRING STRING END; 
+s l ; s 2 ; s 3 ; 
+STRING .pnt (data) := @data[l] '<<' 1;
+! initializes structure pointer 
+pnt.s2 := %4; !Accesses structure item 
+!Declares and 
+
+
+
