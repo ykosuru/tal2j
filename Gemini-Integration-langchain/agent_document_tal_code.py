@@ -2,6 +2,7 @@ import sys
 import os
 from openai import OpenAI
 from typing import List, Dict
+import logging
 
 # Adjust path to import from the parent directory
 project_root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -23,14 +24,18 @@ def run_agent(client: OpenAI, model: str, tal_file_path: str) -> str:
     Returns:
         The absolute path to the generated documented TAL file, or None on failure.
     """
-    print("\n--- Running Agent 1: Document TAL Code ---")
+    # Set up logging configuration to track execution flow and debug issues
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+    logger = logging.getLogger(__name__)
+
+    logger.info("--- Running Agent 1: Document TAL Code ---")
     project_folder = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
     # --- INPUTS ---
     # Load the System Prompt specific to documenting TAL
     system_prompt_file = os.path.join(project_folder, "prompts", "system_prompt_document_tal.txt")
     if not os.path.exists(system_prompt_file):
-        print(f"Warning: System prompt {system_prompt_file} not found. Using generic prompt.")
+        logger.warning(f"Warning: System prompt {system_prompt_file} not found. Using generic prompt.")
         system_prompt_file = os.path.join(project_folder, "prompts", "system_prompt.txt") # Fallback
     system_prompt = read_prompt_file(system_prompt_file)
 
@@ -38,7 +43,7 @@ def run_agent(client: OpenAI, model: str, tal_file_path: str) -> str:
     try:
         tal_code = read_text_file(tal_file_path)
     except ValueError as e:
-        print(f"Error: Could not read input TAL file: {e}")
+        logger.error(f"Error: Could not read input TAL file: {e}")
         return None
 
     # --- PROCESSING ---
@@ -53,7 +58,7 @@ def run_agent(client: OpenAI, model: str, tal_file_path: str) -> str:
     documented_tal_code = extract_code_block(response_raw, language="tal")
 
     if not documented_tal_code:
-        print("Warning: Could not extract documented TAL code block. Using raw response.")
+        logger.warning("Warning: Could not extract documented TAL code block. Using raw response.")
         documented_tal_code = response_raw # Fallback
 
     # --- OUTPUT ---
@@ -68,10 +73,10 @@ def run_agent(client: OpenAI, model: str, tal_file_path: str) -> str:
             filename=output_filename,
             subfolder=output_subfolder
         )
-        print(f"Documented TAL code saved to: {output_path}")
+        logger.info(f"Documented TAL code saved to: {output_path}")
         return output_path
     except Exception as e:
-        print(f"Error writing documented TAL file: {e}")
+        logger.error(f"Error writing documented TAL file: {e}")
         return None
 
 # Example of direct execution (optional)
@@ -87,8 +92,8 @@ if __name__ == "__main__":
     if os.path.exists(test_tal_file):
         result_path = run_agent(client, model, test_tal_file)
         if result_path:
-            print(f"\nAgent 1 finished successfully. Output: {result_path}")
+            logging.info(f"\nAgent 1 finished successfully. Output: {result_path}")
         else:
-            print("\nAgent 1 failed.")
+            logging.error("\nAgent 1 failed.")
     else:
-        print(f"Test TAL file not found: {test_tal_file}")
+        logging.error(f"Test TAL file not found: {test_tal_file}")
