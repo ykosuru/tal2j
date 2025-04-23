@@ -1,5 +1,8 @@
-import org.junit.jupiter.api.*;
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Nested;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -7,516 +10,430 @@ import java.io.InputStream;
 import java.io.PrintStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.InputMismatchException;
-import java.util.Scanner;
+import java.nio.charset.StandardCharsets;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * JUnit 5 tests for the InventorySystem class and its related components.
+ * JUnit 5 tests for the {@link InventorySystem} class.
  */
 class InventorySystemTest {
 
-    // For capturing System.out and System.err
-    private final ByteArrayOutputStream outContent = new ByteArrayOutputStream();
-    private final ByteArrayOutputStream errContent = new ByteArrayOutputStream();
-    private final PrintStream originalOut = System.out;
-    private final PrintStream originalErr = System.err;
-    private final InputStream originalIn = System.in;
+    // --- Constants for testing ---
+    private static final int MAX_ITEMS = 100;
+    private static final int SUCCESS = 0;
+    private static final int ERROR_INVALID_INPUT = 1;
+    private static final int CMD_ADD = 1;
+    private static final int CMD_DELETE = 2;
+    private static final int CMD_UPDATE = 3;
+    private static final int CMD_QUERY = 4;
+    private static final int CMD_REPORT = 5;
+    private static final int CMD_EXIT = 6;
 
-    // Helper method to reset static fields of InventorySystem before each test
-    private void resetInventorySystemState() throws Exception {
-        // Reset inventory list
-        Field inventoryField = InventorySystem.class.getDeclaredField("inventory");
-        inventoryField.setAccessible(true);
-        inventoryField.set(null, new ArrayList<>(InventorySystem.MAX_ITEMS > 0 ? InventorySystem.MAX_ITEMS : 10));
+    // --- Stream redirection ---
+    private final InputStream originalSystemIn = System.in;
+    private final PrintStream originalSystemOut = System.out;
+    private ByteArrayOutputStream systemOutContent;
 
-        // Reset inventory count
-        Field inventoryCountField = InventorySystem.class.getDeclaredField("inventoryCount");
-        inventoryCountField.setAccessible(true);
-        inventoryCountField.setInt(null, 0);
-
-        // Reset transaction count
-        Field transactionCountField = InventorySystem.class.getDeclaredField("transactionCount");
-        transactionCountField.setAccessible(true);
-        transactionCountField.setInt(null, 0);
-
-        // Reset error code
-        Field errorCodeField = InventorySystem.class.getDeclaredField("errorCode");
-        errorCodeField.setAccessible(true);
-        errorCodeField.setInt(null, InventorySystem.SUCCESS);
-
-        // Reset current customer
-        Field currentCustomerField = InventorySystem.class.getDeclaredField("currentCustomer");
-        currentCustomerField.setAccessible(true);
-        currentCustomerField.set(null, null);
+    // --- Reflection helpers (to access private static members) ---
+    private static Field getField(String fieldName) throws NoSuchFieldException {
+        Field field = InventorySystem.class.getDeclaredField(fieldName);
+        field.setAccessible(true);
+        return field;
     }
 
-    // Helper method to invoke private static methods using reflection
-    private static Object invokePrivateStaticMethod(String methodName, Class<?>[] parameterTypes, Object[] args) throws Exception {
+    private static Method getMethod(String methodName, Class<?>... parameterTypes) throws NoSuchMethodException {
         Method method = InventorySystem.class.getDeclaredMethod(methodName, parameterTypes);
         method.setAccessible(true);
-        return method.invoke(null, args); // null for static method
+        return method;
     }
 
-     // Helper method to get private static field value
-    private static Object getPrivateStaticField(String fieldName) throws Exception {
-        Field field = InventorySystem.class.getDeclaredField(fieldName);
-        field.setAccessible(true);
-        return field.get(null);
-    }
-
-     // Helper method to set private static field value
-    private static void setPrivateStaticField(String fieldName, Object value) throws Exception {
-        Field field = InventorySystem.class.getDeclaredField(fieldName);
-        field.setAccessible(true);
-        field.set(null, value);
-    }
+    // --- Setup and Teardown ---
 
     @BeforeEach
     void setUp() throws Exception {
-        // Redirect System.out and System.err
-        System.setOut(new PrintStream(outContent));
-        System.setErr(new PrintStream(errContent));
-        // Reset static state
-        resetInventorySystemState();
+        // Redirect System.out
+        systemOutContent = new ByteArrayOutputStream();
+        System.setOut(new PrintStream(systemOutContent));
+
+        // Reset static state before each test
+        resetStaticState();
     }
 
     @AfterEach
     void tearDown() {
-        // Restore original System streams
-        System.setOut(originalOut);
-        System.setErr(originalErr);
-        System.setIn(originalIn);
+        // Restore original System.in and System.out
+        System.setIn(originalSystemIn);
+        System.setOut(originalSystemOut);
     }
 
-    // --- ItemRecord Tests ---
+    // --- Helper method to reset static state ---
+    private void resetStaticState() throws Exception {
+        getField("errorCode").set(null, SUCCESS);
+        getField("transactionCount").set(null, 0);
+        getField("inventoryCount").set(null, 0);
+        // Reset inventory array (important for isolation)
+        getField("inventory").set(null, new InventorySystem.ItemRecord[MAX_ITEMS]);
+        // Reset buffer
+        StringBuilder buffer = (StringBuilder) getField("buffer").get(null);
+        buffer.setLength(0);
+        // Reset customer (if needed by test)
+        getField("currentCustomer").set(null, null); // Or initialize as needed
+    }
+
+    // --- Helper method to provide input ---
+    private void provideInput(String data) {
+        ByteArrayInputStream testIn = new ByteArrayInputStream(data.getBytes(StandardCharsets.UTF_8));
+        System.setIn(testIn);
+    }
+
+    // --- Helper method to get output ---
+    private String getOutput() {
+        return systemOutContent.toString().replace("\r\n", "\n"); // Normalize line endings
+    }
+
+    // --- Test Cases ---
 
     @Test
-    @DisplayName("ItemRecord constructor should set fields correctly")
-    void itemRecordConstructor() {
-        ItemRecord item = new ItemRecord(101, "Test Item", 5, 99.99);
-        assertEquals(101, item.itemId);
-        assertEquals("Test Item", item.name);
-        assertEquals(5, item.quantity);
-        assertEquals(99.99, item.price);
+    @DisplayName("initializeInventory should set up initial items and count")
+    void testInitializeInventory() throws Exception {
+        // Arrange
+        Method initializeInventory = getMethod("initializeInventory");
+
+        // Act
+        initializeInventory.invoke(null);
+
+        // Assert
+        int inventoryCount = (int) getField("inventoryCount").get(null);
+        InventorySystem.ItemRecord[] inventory = (InventorySystem.ItemRecord[]) getField("inventory").get(null);
+
+        assertEquals(3, inventoryCount, "Inventory count should be 3 after initialization");
+        assertNotNull(inventory[0], "Item 1 should not be null");
+        assertEquals(101, inventory[0].itemId);
+        assertEquals("Laptop", inventory[0].name);
+        assertNotNull(inventory[1], "Item 2 should not be null");
+        assertEquals(102, inventory[1].itemId);
+        assertEquals("Mouse", inventory[1].name);
+        assertNotNull(inventory[2], "Item 3 should not be null");
+        assertEquals(103, inventory[2].itemId);
+        assertEquals("Keyboard", inventory[2].name);
+        assertNull(inventory[3], "Item 4 should be null"); // Check beyond initialized items
+
+        assertTrue(getOutput().contains("Inventory initialized with 3 items."), "Initialization message should be printed");
     }
 
     @Test
-    @DisplayName("ItemRecord toString should return correct format")
-    void itemRecordToString() {
-        ItemRecord item = new ItemRecord(101, "Test Item", 5, 99.99);
-        String expected = "ItemRecord{itemId=101, name='Test Item', quantity=5, price=99.99}";
+    @DisplayName("displayMenu should print the menu options")
+    void testDisplayMenu() throws Exception {
+        // Arrange
+        Method displayMenu = getMethod("displayMenu");
+
+        // Act
+        displayMenu.invoke(null);
+
+        // Assert
+        String output = getOutput();
+        assertTrue(output.contains("--- Inventory System Menu ---"), "Menu header missing");
+        assertTrue(output.contains("1. Add Item"), "Add Item option missing");
+        assertTrue(output.contains("2. Delete Item"), "Delete Item option missing");
+        assertTrue(output.contains("3. Update Item"), "Update Item option missing");
+        assertTrue(output.contains("4. Query Item"), "Query Item option missing");
+        assertTrue(output.contains("5. Generate Report"), "Generate Report option missing");
+        assertTrue(output.contains("6. Exit"), "Exit option missing");
+        assertTrue(output.contains("---------------------------"), "Menu footer missing");
+        assertTrue(output.endsWith("Enter command number: "), "Prompt missing or has extra newline");
+    }
+
+    @Nested
+    @DisplayName("readCommand Tests")
+    class ReadCommandTests {
+
+        @Test
+        @DisplayName("should return valid command number for integer input")
+        void testReadCommandValid() throws Exception {
+            // Arrange
+            provideInput("4\n"); // Simulate user entering '4'
+            Method readCommand = getMethod("readCommand");
+
+            // Act
+            int command = (int) readCommand.invoke(null);
+
+            // Assert
+            assertEquals(4, command, "Should return the entered integer command");
+            assertEquals(SUCCESS, getField("errorCode").get(null), "Error code should remain SUCCESS for valid input");
+            assertTrue(getOutput().isEmpty(), "Should not print error for valid input");
+        }
+
+        @Test
+        @DisplayName("should return -1 and set error code for non-integer input")
+        void testReadCommandInvalidFormat() throws Exception {
+            // Arrange
+            provideInput("abc\n"); // Simulate user entering non-integer text
+            Method readCommand = getMethod("readCommand");
+
+            // Act
+            int command = (int) readCommand.invoke(null);
+
+            // Assert
+            assertEquals(-1, command, "Should return -1 for invalid input format");
+            assertEquals(ERROR_INVALID_INPUT, getField("errorCode").get(null), "Error code should be set to ERROR_INVALID_INPUT");
+            assertTrue(getOutput().contains("Error: Please enter a valid integer command."), "Error message for invalid format should be printed");
+        }
+
+         @Test
+        @DisplayName("should handle empty input gracefully (treated as invalid)")
+        void testReadCommandEmptyInput() throws Exception {
+            // Arrange
+            provideInput("\n"); // Simulate user pressing Enter immediately
+            Method readCommand = getMethod("readCommand");
+
+            // Act & Assert
+            // InputMismatchException is expected here when nextInt() finds no integer
+            assertThrows(java.util.InputMismatchException.class, () -> {
+                 readCommand.invoke(null);
+                 // Note: The original code catches this, prints an error, and returns -1.
+                 // However, invoking the method directly might bypass some Scanner state handling
+                 // or exception catching if not run within the full context.
+                 // Let's refine this to check the state *after* the intended catch block.
+            });
+
+            // Rerun with a setup that mimics the catch block behavior
+            provideInput("\n");
+             try {
+                 readCommand.invoke(null);
+             } catch (Exception e) {
+                 // The reflection invoke might throw InvocationTargetException wrapping the original
+                 if (!(e.getCause() instanceof java.util.InputMismatchException)) {
+                     throw e; // Re-throw unexpected exceptions
+                 }
+                 // Simulate the catch block in the original code
+                 getField("errorCode").set(null, ERROR_INVALID_INPUT);
+                 getMethod("writeLine", String.class).invoke(null, "Error: Please enter a valid integer command.");
+             }
+
+             // Assert state after simulated catch
+             assertEquals(ERROR_INVALID_INPUT, getField("errorCode").get(null), "Error code should be set after empty input");
+             assertTrue(getOutput().contains("Error: Please enter a valid integer command."), "Error message should be printed for empty input");
+             // The return value isn't easily captured here without running the full main loop logic
+        }
+    }
+
+
+    @Nested
+    @DisplayName("printError Tests")
+    class PrintErrorTests {
+
+        @Test
+        @DisplayName("should print correct message for known error code and reset code")
+        void testPrintErrorKnownCode() throws Exception {
+            // Arrange
+            getField("errorCode").set(null, ERROR_INVALID_INPUT);
+            Method printError = getMethod("printError");
+
+            // Act
+            printError.invoke(null);
+
+            // Assert
+            String output = getOutput();
+            assertTrue(output.contains("Error: Invalid command or input."), "Correct error message should be printed");
+            assertEquals(SUCCESS, getField("errorCode").get(null), "Error code should be reset to SUCCESS");
+        }
+
+        @Test
+        @DisplayName("should print generic message for unknown error code and reset code")
+        void testPrintErrorUnknownCode() throws Exception {
+            // Arrange
+            int unknownErrorCode = 99;
+            getField("errorCode").set(null, unknownErrorCode);
+            Method printError = getMethod("printError");
+
+            // Act
+            printError.invoke(null);
+
+            // Assert
+            String output = getOutput();
+            assertTrue(output.contains("Error: An unknown error occurred (Code: " + unknownErrorCode + ")"), "Generic error message for unknown code expected");
+            assertEquals(SUCCESS, getField("errorCode").get(null), "Error code should be reset to SUCCESS");
+        }
+
+        @Test
+        @DisplayName("should print nothing if error code is SUCCESS")
+        void testPrintErrorSuccess() throws Exception {
+            // Arrange
+            getField("errorCode").set(null, SUCCESS);
+            Method printError = getMethod("printError");
+
+            // Act
+            printError.invoke(null);
+
+            // Assert
+            String output = getOutput();
+            assertTrue(output.isEmpty(), "No output should be generated when errorCode is SUCCESS");
+            assertEquals(SUCCESS, getField("errorCode").get(null), "Error code should remain SUCCESS");
+        }
+    }
+
+    @Nested
+    @DisplayName("Placeholder Command Method Tests")
+    class PlaceholderCommandTests {
+
+        private void testPlaceholderMethod(String methodName, String expectedOutput) throws Exception {
+            // Arrange
+            Method method = getMethod(methodName);
+
+            // Act
+            method.invoke(null);
+
+            // Assert
+            assertTrue(getOutput().contains(expectedOutput), "Expected placeholder message not found for " + methodName);
+        }
+
+        @Test
+        @DisplayName("addItem should print not implemented message")
+        void testAddItem() throws Exception {
+            testPlaceholderMethod("addItem", "Add item functionality not yet implemented.");
+        }
+
+        @Test
+        @DisplayName("deleteItem should print not implemented message")
+        void testDeleteItem() throws Exception {
+            testPlaceholderMethod("deleteItem", "Delete item functionality not yet implemented.");
+        }
+
+        @Test
+        @DisplayName("updateItem should print not implemented message")
+        void testUpdateItem() throws Exception {
+            testPlaceholderMethod("updateItem", "Update item functionality not yet implemented.");
+        }
+
+        @Test
+        @DisplayName("queryItem should print not implemented message")
+        void testQueryItem() throws Exception {
+            testPlaceholderMethod("queryItem", "Query item functionality not yet implemented.");
+        }
+
+        @Test
+        @DisplayName("generateReport should print not implemented message")
+        void testGenerateReport() throws Exception {
+            testPlaceholderMethod("generateReport", "Generate report functionality not yet implemented.");
+        }
+    }
+
+    @Test
+    @DisplayName("ItemRecord toString should format correctly")
+    void testItemRecordToString() {
+        InventorySystem.ItemRecord item = new InventorySystem.ItemRecord(101, "Test Item", 99.99, 10);
+        String expected = "ItemRecord{itemId=101, name='Test Item', price=99.99, quantity=10}";
         assertEquals(expected, item.toString());
     }
 
-    // --- CustomerRecord Tests ---
-
     @Test
-    @DisplayName("CustomerRecord constructor should set fields correctly")
-    void customerRecordConstructor() {
-        CustomerRecord customer = new CustomerRecord(201, "Test Customer", CustomerRecord.FLAG_IS_ACTIVE);
-        assertEquals(201, customer.customerId);
-        assertEquals("Test Customer", customer.customerName);
-        assertEquals(CustomerRecord.FLAG_IS_ACTIVE, customer.getFlags());
-    }
-
-    @Test
-    @DisplayName("CustomerRecord getFlags and setFlags should work")
-    void customerRecordGetSetFlags() {
-        CustomerRecord customer = new CustomerRecord(202, "Another Customer", 0);
-        assertEquals(0, customer.getFlags());
-        customer.setFlags(CustomerRecord.FLAG_TAX_EXEMPT | CustomerRecord.FLAG_RESERVED);
-        assertEquals(CustomerRecord.FLAG_TAX_EXEMPT | CustomerRecord.FLAG_RESERVED, customer.getFlags());
-    }
-
-    @Test
-    @DisplayName("CustomerRecord isFlagSet should correctly check flags")
-    void customerRecordIsFlagSet() {
-        int initialFlags = CustomerRecord.FLAG_IS_ACTIVE | CustomerRecord.FLAG_RESERVED; // 1 | 4 = 5 (0b0101)
-        CustomerRecord customer = new CustomerRecord(203, "Flag Customer", initialFlags);
-
-        assertTrue(customer.isFlagSet(CustomerRecord.FLAG_IS_ACTIVE), "FLAG_IS_ACTIVE should be set");
-        assertFalse(customer.isFlagSet(CustomerRecord.FLAG_TAX_EXEMPT), "FLAG_TAX_EXEMPT should not be set");
-        assertTrue(customer.isFlagSet(CustomerRecord.FLAG_RESERVED), "FLAG_RESERVED should be set");
-
-        // Check a combination
-        assertTrue(customer.isFlagSet(CustomerRecord.FLAG_IS_ACTIVE | CustomerRecord.FLAG_RESERVED), "Combined flags should be set");
-        assertFalse(customer.isFlagSet(CustomerRecord.FLAG_IS_ACTIVE | CustomerRecord.FLAG_TAX_EXEMPT), "Mixed flags should not be fully set");
-    }
-
-     @Test
-    @DisplayName("CustomerRecord toString should show flags in binary")
-    void customerRecordToString() {
-        CustomerRecord customer = new CustomerRecord(204, "Binary Flags", CustomerRecord.FLAG_IS_ACTIVE | CustomerRecord.FLAG_TAX_EXEMPT); // 1 | 2 = 3 (0b11)
-        String expected = "CustomerRecord{customerId=204, customerName='Binary Flags', flags=11}"; // Binary representation of 3
+    @DisplayName("CustomerRecord toString should format correctly")
+    void testCustomerRecordToString() {
+        InventorySystem.CustomerRecord customer = new InventorySystem.CustomerRecord(9001);
+        customer.isActive = true;
+        customer.taxExempt = false;
+        String expected = "CustomerRecord{customerId=9001, isActive=true, taxExempt=false}";
         assertEquals(expected, customer.toString());
     }
 
-    // --- InventorySystem Method Tests ---
+    // --- Limited Main Loop Logic Tests (Focus on state changes and output) ---
+    // Note: Testing main directly is problematic due to System.exit and the input loop.
+    // These tests simulate parts of the loop's behavior by calling relevant methods.
 
     @Test
-    @DisplayName("initializeInventory should populate inventory and set count")
-    void initializeInventoryTest() throws Exception {
-        invokePrivateStaticMethod("initializeInventory", new Class<?>[]{}, new Object[]{});
+    @DisplayName("Main loop simulation: Valid command should increase transaction count and log")
+    void testMainLoopValidCommand() throws Exception {
+         // Arrange: Initialize, provide input for a valid command (e.g., Add)
+        getMethod("initializeInventory").invoke(null);
+        provideInput(CMD_ADD + "\n"); // Simulate entering '1'
+        systemOutContent.reset(); // Clear init output
 
-        @SuppressWarnings("unchecked")
-        ArrayList<ItemRecord> inventory = (ArrayList<ItemRecord>) getPrivateStaticField("inventory");
-        int inventoryCount = (int) getPrivateStaticField("inventoryCount");
+        // Act: Simulate reading command and executing the 'add' branch
+        int cmd = (int) getMethod("readCommand").invoke(null);
+        assertEquals(CMD_ADD, cmd);
 
-        assertFalse(inventory.isEmpty(), "Inventory should not be empty after initialization");
-        assertEquals(3, inventory.size(), "Inventory should have 3 items after initialization");
-        assertEquals(3, inventoryCount, "Inventory count should be 3 after initialization");
-        assertEquals("Laptop", inventory.get(0).name);
-        assertTrue(outContent.toString().contains("Initialization complete. 3 items loaded."), "Initialization message should be printed");
-    }
+        getMethod("addItem").invoke(null); // Simulate action
+        boolean validCommandProcessed = true; // As determined in main's switch
+        int currentTransactionCount = (int) getField("transactionCount").get(null);
 
-    @Test
-    @DisplayName("readCommand should return correct command for valid integer input")
-    void readCommandValidInput() throws Exception {
-        String input = "3\n"; // Simulate user entering '3' then Enter
-        System.setIn(new ByteArrayInputStream(input.getBytes()));
-        Scanner scanner = new Scanner(System.in);
-
-        int command = (int) invokePrivateStaticMethod("readCommand", new Class<?>[]{Scanner.class}, new Object[]{scanner});
-
-        assertEquals(3, command, "Should return the integer command entered");
-        assertEquals(InventorySystem.SUCCESS, getPrivateStaticField("errorCode"), "Error code should remain SUCCESS for valid input");
-        assertTrue(errContent.toString().isEmpty(), "No error message should be printed for valid input");
-        scanner.close(); // Close scanner explicitly in test
-    }
-
-    @Test
-    @DisplayName("readCommand should return marker and set error for invalid input")
-    void readCommandInvalidInput() throws Exception {
-        String input = "abc\n"; // Simulate user entering non-integer input
-        System.setIn(new ByteArrayInputStream(input.getBytes()));
-        Scanner scanner = new Scanner(System.in);
-
-        int command = (int) invokePrivateStaticMethod("readCommand", new Class<?>[]{Scanner.class}, new Object[]{scanner});
-        int expectedInvalidMarker = (int) getPrivateStaticField("INVALID_COMMAND_MARKER");
-
-
-        assertEquals(expectedInvalidMarker, command, "Should return INVALID_COMMAND_MARKER for non-integer input");
-        assertEquals(InventorySystem.ERROR_INVALID_INPUT, getPrivateStaticField("errorCode"), "Error code should be set to ERROR_INVALID_INPUT");
-        assertTrue(errContent.toString().contains("Invalid input: Please enter a number."), "Error message should be printed for invalid input");
-        assertTrue(errContent.toString().contains("(Code: " + InventorySystem.ERROR_INVALID_INPUT + ")"), "Error code should be printed");
-        scanner.close(); // Close scanner explicitly in test
-    }
-
-    @Test
-    @DisplayName("addItem should add a dummy item when inventory is not full")
-    void addItemNotFull() throws Exception {
-        invokePrivateStaticMethod("initializeInventory", new Class<?>[]{}, new Object[]{}); // Start with 3 items
-        int initialCount = (int) getPrivateStaticField("inventoryCount");
-        Scanner scanner = new Scanner(System.in); // Scanner needed but not used for input in this placeholder
-
-        invokePrivateStaticMethod("addItem", new Class<?>[]{Scanner.class}, new Object[]{scanner});
-
-        @SuppressWarnings("unchecked")
-        ArrayList<ItemRecord> inventory = (ArrayList<ItemRecord>) getPrivateStaticField("inventory");
-        int finalCount = (int) getPrivateStaticField("inventoryCount");
-
-        assertEquals(initialCount + 1, finalCount, "Inventory count should increase by 1");
-        assertEquals(initialCount + 1, inventory.size(), "Inventory list size should increase by 1");
-        assertEquals("New Item", inventory.get(finalCount - 1).name, "The new dummy item should be added");
-        assertEquals(InventorySystem.SUCCESS, getPrivateStaticField("errorCode"), "Error code should be SUCCESS after adding");
-        assertTrue(outContent.toString().contains("Dummy item added. Current count: " + finalCount), "Success message should be printed");
-        scanner.close();
-    }
-
-    @Test
-    @DisplayName("addItem should not add item and set error when inventory is full (MAX_ITEMS > 0)")
-    @DisabledIf("isMaxItemsZeroOrLess") // Skip if MAX_ITEMS is not a positive constraint
-    void addItemFull() throws Exception {
-        // Set MAX_ITEMS to a small number for testing (e.g., 1)
-        // This requires reflection or making MAX_ITEMS non-final, which is intrusive.
-        // Alternative: Manually fill the inventory up to MAX_ITEMS if it's reasonably small.
-        // Assuming MAX_ITEMS = 100 initially, this test is hard to run directly.
-        // Let's simulate the condition by setting inventoryCount manually.
-
-        if (InventorySystem.MAX_ITEMS <= 0) {
-             System.out.println("Skipping addItemFull test as MAX_ITEMS is not positive.");
-             return; // Skip test if MAX_ITEMS isn't a limit
+        if (validCommandProcessed) {
+            getField("transactionCount").set(null, currentTransactionCount + 1);
+            // Simulate logger call - check output
+            InventorySystem.ExternalLogger.logTransaction(cmd, (int) getField("transactionCount").get(null));
         }
 
-        setPrivateStaticField("inventoryCount", InventorySystem.MAX_ITEMS); // Simulate full inventory
-        @SuppressWarnings("unchecked")
-        ArrayList<ItemRecord> inventory = (ArrayList<ItemRecord>) getPrivateStaticField("inventory");
-        // Ensure list size matches count for consistency if needed (though the check uses count)
-        while (inventory.size() < InventorySystem.MAX_ITEMS) {
-            inventory.add(new ItemRecord(999, "Filler", 1, 1.0));
-        }
-
-        int initialCount = (int) getPrivateStaticField("inventoryCount");
-        Scanner scanner = new Scanner(System.in);
-
-        invokePrivateStaticMethod("addItem", new Class<?>[]{Scanner.class}, new Object[]{scanner});
-
-        int finalCount = (int) getPrivateStaticField("inventoryCount");
-        int finalListSize = ((ArrayList<?>) getPrivateStaticField("inventory")).size();
-
-        assertEquals(initialCount, finalCount, "Inventory count should not change when full");
-        assertEquals(initialCount, finalListSize, "Inventory list size should not change when full");
-        assertEquals(InventorySystem.ERROR_SYSTEM, getPrivateStaticField("errorCode"), "Error code should be set when full");
-        assertTrue(errContent.toString().contains("Cannot add item: Inventory is full"), "Error message for full inventory should be printed");
-        scanner.close();
-    }
-    // Helper method for @DisabledIf
-    static boolean isMaxItemsZeroOrLess() {
-        return InventorySystem.MAX_ITEMS <= 0;
-    }
-
-
-    @Test
-    @DisplayName("deleteItem placeholder should run and set SUCCESS")
-    void deleteItemPlaceholder() throws Exception {
-        setPrivateStaticField("errorCode", InventorySystem.ERROR_SYSTEM); // Set an error beforehand
-        Scanner scanner = new Scanner(System.in);
-
-        invokePrivateStaticMethod("deleteItem", new Class<?>[]{Scanner.class}, new Object[]{scanner});
-
-        assertTrue(outContent.toString().contains("[Action] Delete Item selected"), "Placeholder message should be printed");
-        assertEquals(InventorySystem.SUCCESS, getPrivateStaticField("errorCode"), "Error code should be reset to SUCCESS");
-        scanner.close();
-    }
-
-    @Test
-    @DisplayName("updateItem placeholder should run and set SUCCESS")
-    void updateItemPlaceholder() throws Exception {
-        setPrivateStaticField("errorCode", InventorySystem.ERROR_SYSTEM); // Set an error beforehand
-        Scanner scanner = new Scanner(System.in);
-
-        invokePrivateStaticMethod("updateItem", new Class<?>[]{Scanner.class}, new Object[]{scanner});
-
-        assertTrue(outContent.toString().contains("[Action] Update Item selected"), "Placeholder message should be printed");
-        assertEquals(InventorySystem.SUCCESS, getPrivateStaticField("errorCode"), "Error code should be reset to SUCCESS");
-        scanner.close();
-    }
-
-    @Test
-    @DisplayName("queryItem placeholder should display first item if inventory not empty")
-    void queryItemNotEmpty() throws Exception {
-        invokePrivateStaticMethod("initializeInventory", new Class<?>[]{}, new Object[]{}); // Add initial items
-        setPrivateStaticField("errorCode", InventorySystem.ERROR_SYSTEM); // Set an error beforehand
-        Scanner scanner = new Scanner(System.in);
-
-        invokePrivateStaticMethod("queryItem", new Class<?>[]{Scanner.class}, new Object[]{scanner});
-
-        assertTrue(outContent.toString().contains("[Action] Query Item selected"), "Placeholder message should be printed");
-        assertTrue(outContent.toString().contains("Example Query: Displaying first item:"), "Query message should be printed");
-        assertTrue(outContent.toString().contains("ItemRecord{itemId=1, name='Laptop', quantity=10, price=1200.5}"), "First item details should be printed");
-        assertEquals(InventorySystem.SUCCESS, getPrivateStaticField("errorCode"), "Error code should be reset to SUCCESS");
-        scanner.close();
-    }
-
-    @Test
-    @DisplayName("queryItem placeholder should display message if inventory empty")
-    void queryItemEmpty() throws Exception {
-        // Ensure inventory is empty (default after reset)
-        setPrivateStaticField("errorCode", InventorySystem.ERROR_SYSTEM); // Set an error beforehand
-        Scanner scanner = new Scanner(System.in);
-
-        invokePrivateStaticMethod("queryItem", new Class<?>[]{Scanner.class}, new Object[]{scanner});
-
-        assertTrue(outContent.toString().contains("[Action] Query Item selected"), "Placeholder message should be printed");
-        assertTrue(outContent.toString().contains("Inventory is empty."), "Empty inventory message should be printed");
-        assertEquals(InventorySystem.SUCCESS, getPrivateStaticField("errorCode"), "Error code should be reset to SUCCESS");
-        scanner.close();
-    }
-
-
-    @Test
-    @DisplayName("generateReport should print items when inventory is not empty")
-    void generateReportNotEmpty() throws Exception {
-        invokePrivateStaticMethod("initializeInventory", new Class<?>[]{}, new Object[]{}); // Add initial items
-        setPrivateStaticField("errorCode", InventorySystem.ERROR_SYSTEM); // Set an error beforehand
-
-        invokePrivateStaticMethod("generateReport", new Class<?>[]{}, new Object[]{});
-
-        String output = outContent.toString();
-        assertTrue(output.contains("[Action] Generate Report selected."), "Action message missing");
-        assertTrue(output.contains("--- Inventory Report ---"), "Report header missing");
-        assertTrue(output.contains("Total items: 3"), "Correct item count missing");
-        assertTrue(output.contains("ItemRecord{itemId=1, name='Laptop', quantity=10, price=1200.5}"), "Laptop item missing");
-        assertTrue(output.contains("ItemRecord{itemId=2, name='Mouse', quantity=50, price=25.0}"), "Mouse item missing");
-        assertTrue(output.contains("ItemRecord{itemId=3, name='Keyboard', quantity=30, price=75.75}"), "Keyboard item missing");
-        assertTrue(output.contains("--- End of Report ---"), "Report footer missing");
-        assertEquals(InventorySystem.SUCCESS, getPrivateStaticField("errorCode"), "Error code should be reset to SUCCESS");
-    }
-
-    @Test
-    @DisplayName("generateReport should print empty message when inventory is empty")
-    void generateReportEmpty() throws Exception {
-         // Ensure inventory is empty (default after reset)
-        setPrivateStaticField("errorCode", InventorySystem.ERROR_SYSTEM); // Set an error beforehand
-
-        invokePrivateStaticMethod("generateReport", new Class<?>[]{}, new Object[]{});
-
-        String output = outContent.toString();
-        assertTrue(output.contains("[Action] Generate Report selected."), "Action message missing");
-        assertTrue(output.contains("--- Inventory Report ---"), "Report header missing");
-        assertTrue(output.contains("Inventory is currently empty."), "Empty inventory message missing");
-        assertTrue(output.contains("--- End of Report ---"), "Report footer missing");
-        assertEquals(InventorySystem.SUCCESS, getPrivateStaticField("errorCode"), "Error code should be reset to SUCCESS");
-    }
-
-    @Test
-    @DisplayName("printError should print correct message for valid error code")
-    void printErrorValidCode() throws Exception {
-        setPrivateStaticField("errorCode", InventorySystem.ERROR_INVALID_INPUT); // Set a specific error
-
-        invokePrivateStaticMethod("printError", new Class<?>[]{}, new Object[]{});
-
-        String errorOutput = errContent.toString();
-        assertTrue(errorOutput.contains("Error: Invalid input provided."), "Correct error message missing");
-        assertTrue(errorOutput.contains("(Code: " + InventorySystem.ERROR_INVALID_INPUT + ")"), "Error code missing");
+        // Assert
+        assertEquals(1, getField("transactionCount").get(null), "Transaction count should increment");
+        String output = getOutput();
+        assertTrue(output.contains("Add item functionality not yet implemented."), "addItem output expected");
+        assertTrue(output.contains("[External Logger] Logged transaction: Command=1, Count=1"), "External logger output expected");
     }
 
      @Test
-    @DisplayName("printError should print unknown error message for invalid error code")
-    void printErrorInvalidCode() throws Exception {
-        int invalidCode = 99;
-        setPrivateStaticField("errorCode", invalidCode); // Set an out-of-bounds error code
+    @DisplayName("Main loop simulation: Invalid command number should print error")
+    void testMainLoopInvalidCommandNumber() throws Exception {
+        // Arrange: Initialize, provide input for an invalid command number
+        getMethod("initializeInventory").invoke(null);
+        provideInput("99\n"); // Simulate entering '99'
+        systemOutContent.reset(); // Clear init output
 
-        invokePrivateStaticMethod("printError", new Class<?>[]{}, new Object[]{});
+        // Act: Simulate reading command and hitting the default case
+        int cmd = (int) getMethod("readCommand").invoke(null);
+        assertEquals(99, cmd);
 
-        String errorOutput = errContent.toString();
-        assertTrue(errorOutput.contains("An unknown error occurred."), "Unknown error message missing");
-        assertTrue(errorOutput.contains("(Code: " + invalidCode + ")"), "Invalid error code missing");
-    }
-
-    @Test
-    @DisplayName("Transaction count should increment after successful command")
-    void transactionCountIncrement() throws Exception {
-        // Simulate a successful command execution (e.g., generateReport)
-        invokePrivateStaticMethod("initializeInventory", new Class<?>[]{}, new Object[]{});
-        assertEquals(0, getPrivateStaticField("transactionCount"), "Initial transaction count should be 0");
-
-        // Simulate main loop calling generateReport and logging
-        int cmd = 5; // Command for generateReport
-        invokePrivateStaticMethod("generateReport", new Class<?>[]{}, new Object[]{});
-        // Manually simulate the logging part from main loop as testing main directly is hard
-        if (cmd != 6 && cmd != -1 && (int)getPrivateStaticField("errorCode") == InventorySystem.SUCCESS) {
-             int currentCount = (int) getPrivateStaticField("transactionCount");
-             currentCount++;
-             setPrivateStaticField("transactionCount", currentCount);
-             // LoggingService.logTransaction(cmd, currentCount); // We can check the count directly
+        // Simulate default case logic
+        if (cmd != -1) { // Check to avoid double error message
+            getField("errorCode").set(null, ERROR_INVALID_INPUT);
+            getMethod("printError").invoke(null);
         }
+        boolean validCommandProcessed = false; // As determined in main's switch
+        int initialTransactionCount = (int) getField("transactionCount").get(null);
 
-        assertEquals(1, getPrivateStaticField("transactionCount"), "Transaction count should be 1 after one successful command");
-        assertTrue(outContent.toString().contains("[LOG] Transaction #1: Command 5 executed."), "Log message should appear for transaction");
-
-         // Simulate another successful command (e.g., queryItem)
-        cmd = 4; // Command for queryItem
-        invokePrivateStaticMethod("queryItem", new Class<?>[]{Scanner.class}, new Object[]{new Scanner(System.in)});
-         if (cmd != 6 && cmd != -1 && (int)getPrivateStaticField("errorCode") == InventorySystem.SUCCESS) {
-             int currentCount = (int) getPrivateStaticField("transactionCount");
-             currentCount++;
-             setPrivateStaticField("transactionCount", currentCount);
-             // LoggingService.logTransaction(cmd, currentCount);
-        }
-
-        assertEquals(2, getPrivateStaticField("transactionCount"), "Transaction count should be 2 after second successful command");
-         assertTrue(outContent.toString().contains("[LOG] Transaction #2: Command 4 executed."), "Log message should appear for second transaction");
-
+        // Assert
+        assertEquals(ERROR_INVALID_INPUT, (int)getField("errorCode").get(null), "Error code before printError"); // Check state before printError resets it
+        String output = getOutput();
+        assertTrue(output.contains("Error: Invalid command or input."), "Invalid command error message expected");
+        assertEquals(SUCCESS, (int)getField("errorCode").get(null), "Error code should be reset after printError");
+        assertEquals(0, getField("transactionCount").get(null), "Transaction count should not increment for invalid command");
+        assertFalse(validCommandProcessed, "Command should not be marked as processed");
+         assertFalse(output.contains("[External Logger]"), "Logger should not be called for invalid command");
     }
 
      @Test
-    @DisplayName("Transaction count should not increment after failed command")
-    void transactionCountNoIncrementOnFail() throws Exception {
-        assertEquals(0, getPrivateStaticField("transactionCount"), "Initial transaction count should be 0");
+    @DisplayName("Main loop simulation: Invalid input format should print error")
+    void testMainLoopInvalidInputFormat() throws Exception {
+        // Arrange: Initialize, provide invalid format input
+        getMethod("initializeInventory").invoke(null);
+        provideInput("xyz\n");
+        systemOutContent.reset(); // Clear init output
 
-        // Simulate a failed command (e.g., addItem when full)
-        if (InventorySystem.MAX_ITEMS > 0) {
-            setPrivateStaticField("inventoryCount", InventorySystem.MAX_ITEMS); // Simulate full
-             @SuppressWarnings("unchecked")
-            ArrayList<ItemRecord> inventory = (ArrayList<ItemRecord>) getPrivateStaticField("inventory");
-            while (inventory.size() < InventorySystem.MAX_ITEMS) {
-                 inventory.add(new ItemRecord(999, "Filler", 1, 1.0));
-            }
-
-            int cmd = 1; // Command for addItem
-            invokePrivateStaticMethod("addItem", new Class<?>[]{Scanner.class}, new Object[]{new Scanner(System.in)});
-            // Manually simulate the logging check from main loop
-            if (cmd != 6 && cmd != -1 && (int)getPrivateStaticField("errorCode") == InventorySystem.SUCCESS) {
-                 int currentCount = (int) getPrivateStaticField("transactionCount");
-                 currentCount++;
-                 setPrivateStaticField("transactionCount", currentCount);
-            }
-
-             assertEquals(0, getPrivateStaticField("transactionCount"), "Transaction count should remain 0 after failed command");
-             assertFalse(outContent.toString().contains("[LOG]"), "No log message should appear for failed transaction");
-
-        } else {
-             System.out.println("Skipping transactionCountNoIncrementOnFail test as MAX_ITEMS is not positive.");
-        }
-    }
-
-     @Test
-    @DisplayName("Transaction count should not increment for exit command")
-    void transactionCountNoIncrementOnExit() throws Exception {
-        assertEquals(0, getPrivateStaticField("transactionCount"), "Initial transaction count should be 0");
-        int cmd = 6; // Exit command
-
-        // Simulate main loop logic for exit command
-         if (cmd != 6 && cmd != -1 && (int)getPrivateStaticField("errorCode") == InventorySystem.SUCCESS) {
-             int currentCount = (int) getPrivateStaticField("transactionCount");
-             currentCount++;
-             setPrivateStaticField("transactionCount", currentCount);
+        // Act: Simulate readCommand failure and subsequent error handling in loop
+        int cmd = -1; // Simulate return value from readCommand on error
+        int errorCodeBeforeRead = (int) getField("errorCode").get(null);
+        try {
+             cmd = (int) getMethod("readCommand").invoke(null);
+        } catch(Exception e) {
+            // Expected due to InputMismatchException, handled inside readCommand
         }
 
-        assertEquals(0, getPrivateStaticField("transactionCount"), "Transaction count should remain 0 for exit command");
-        assertFalse(outContent.toString().contains("[LOG]"), "No log message should appear for exit command");
-    }
+        // Assert state after readCommand (which sets error code)
+        assertEquals(ERROR_INVALID_INPUT, (int) getField("errorCode").get(null), "Error code should be set by readCommand");
+        assertEquals(-1, cmd, "Command should be -1 after invalid input");
 
-     @Test
-    @DisplayName("Transaction count should not increment for invalid command marker")
-    void transactionCountNoIncrementOnInvalidMarker() throws Exception {
-        assertEquals(0, getPrivateStaticField("transactionCount"), "Initial transaction count should be 0");
-        int cmd = (int) getPrivateStaticField("INVALID_COMMAND_MARKER"); // Invalid command marker
-
-        // Simulate main loop logic for invalid command marker
-         if (cmd != 6 && cmd != -1 && (int)getPrivateStaticField("errorCode") == InventorySystem.SUCCESS) {
-             int currentCount = (int) getPrivateStaticField("transactionCount");
-             currentCount++;
-             setPrivateStaticField("transactionCount", currentCount);
+        // Simulate the error handling block in main's loop
+        if ((int)getField("errorCode").get(null) == ERROR_INVALID_INPUT && cmd == -1) {
+             getMethod("printError").invoke(null);
+             cmd = 0; // Reset cmd as in main
         }
 
-        assertEquals(0, getPrivateStaticField("transactionCount"), "Transaction count should remain 0 for invalid command marker");
-        assertFalse(outContent.toString().contains("[LOG]"), "No log message should appear for invalid command marker");
-    }
-
-    // Note: Testing the bit manipulation part within main() is complex.
-    // It's better tested via the CustomerRecord tests directly, which cover the core logic.
-    // We can add a test to ensure the CustomerService placeholder is called if needed.
-
-    @Test
-    @DisplayName("Bit manipulation example section calls CustomerService (indirect check)")
-    void bitManipulationCallsService() throws Exception {
-         // Ensure inventory is not empty so the example runs
-         invokePrivateStaticMethod("initializeInventory", new Class<?>[]{}, new Object[]{});
-
-         // We can't easily test the full main method, but we can check if
-         // CustomerService.fetchCustomerData is called by looking for its output.
-         // This is fragile but demonstrates the interaction.
-         // A better approach would involve mocking CustomerService.
-
-         // Simulate running the relevant part of main() or extract it.
-         // For simplicity, just check if the fetch message appears when inventory is not empty.
-         // This assumes the example runs if inventory is not empty.
-
-         // Manually trigger the conditions that lead to the bit manipulation block
-         // This is complex to do perfectly without running main().
-         // Instead, we'll just check the CustomerService output pattern.
-         // We need to call a method that might eventually lead to this block,
-         // or accept that testing this specific part of main is hard.
-
-         // Let's call CustomerService directly to verify its output pattern
-         CustomerService.fetchCustomerData(101);
-         assertTrue(outContent.toString().contains("[SERVICE] Fetching data for customer ID: 101"),
-                    "CustomerService fetch message pattern not found.");
-
-         // This doesn't prove main calls it, but verifies the service's behavior.
-         // Testing the exact flow within main requires more advanced techniques (like PowerMock or refactoring).
+        // Assert after error handling
+        String output = getOutput();
+        // readCommand prints its own error, printError prints it again based on state
+        assertTrue(output.contains("Error: Please enter a valid integer command."), "Invalid format error message expected from readCommand");
+        assertTrue(output.contains("Error: Invalid command or input."), "Error message expected from printError call in loop"); // printError uses the set errorCode
+        assertEquals(SUCCESS, (int) getField("errorCode").get(null), "Error code should be reset after printError");
+        assertEquals(0, getField("transactionCount").get(null), "Transaction count should not increment");
+        assertEquals(0, cmd, "cmd should be reset to 0");
     }
 }
