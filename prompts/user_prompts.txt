@@ -1,0 +1,7 @@
+Provide inline comments in the TAL program
+Provide the technical details for the function this TAL program performs.
+Generate the BRD or Business Requirements and the technical specifications.
+Generate Java code from the BRD and Technical specifications.
+Generate the flow diagram using the BRD and the Tech specs to outline the flow and processing steps that can be imported in tools like draw.io.
+Generate a synthetic test file or files that can be used to test and validate the java program.
+Generate unit test cases for the java program that can be run to validate the function. Include edge test cases.

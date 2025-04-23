@@ -1,0 +1,398 @@
+
+! ===========================================================================
+! Comprehensive TAL Program Sample
+! Demonstrates arrays, pointers, subprocs, global variables, external callouts,
+! assignments, byte array operations, bit manipulation, and other TAL features
+! ===========================================================================
+
+! Declare the program name for the compiler and linker
+NAME inventory_system;
+
+! ===========================================================================
+! Forward Declarations
+! ===========================================================================
+! Declare PROC print_error before its definition because it might be called earlier
+FORWARD PROC print_error;
+! Declare STRUCT customer_record before its full definition might be encountered
+! (useful if pointers to it are declared before the struct itself)
+FORWARD STRUCT customer_record;
+
+! ===========================================================================
+! External Declarations
+! ===========================================================================
+! Declare log_transaction as an external procedure (defined in another object file/library)
+! Assumed Purpose: To log details of executed inventory operations.
+EXTERNAL PROC log_transaction;
+! Declare fetch_customer_data as an external procedure (defined in another object file/library)
+! Assumed Purpose: To retrieve customer information based on some criteria.
+EXTERNAL PROC fetch_customer_data;
+
+! ===========================================================================
+! Global Literal Declarations
+! ===========================================================================
+! Define a constant for the maximum number of inventory items
+LITERAL max_items = 1000;
+! Define a constant for the maximum number of customers (Note: not used in this snippet)
+LITERAL max_customers = 500;
+! Define a constant for the size of a general-purpose buffer
+LITERAL buffer_size = 4096;
+! Define a constant representing a successful operation status code
+LITERAL success = 0;
+! Define a constant representing a file not found error code
+LITERAL error_file_not_found = 1;
+! Define a constant representing an invalid input error code
+LITERAL error_invalid_input = 2;
+! Define a constant representing a generic system error code
+LITERAL error_system = 3;
+
+! ===========================================================================
+! Type Definitions (Simple Types)
+! ===========================================================================
+! Define a type alias 'item_id' for INT (potentially for clarity, though also used in STRUCT)
+INT item_id;
+! Define a type alias 'item_name' for STRING (potentially for clarity, though also used in STRUCT)
+STRING item_name;
+! Note: Defining simple types like this which are then redefined within structures
+! might be redundant unless used independently elsewhere.
+
+! ===========================================================================
+! Global Structure Definitions
+! ===========================================================================
+! Define the structure for an inventory item record
+STRUCT item_record;
+BEGIN
+  ! Unique identifier for the item
+  INT item_id;
+  ! Name of the item (up to 31 characters)
+  STRING item_name[0:30];
+  ! Price of the item (fixed-point decimal with 2 places)
+  FIXED(2) item_price;
+  ! Current quantity in stock
+  INT quantity_on_hand;
+  ! Threshold quantity for reordering
+  INT reorder_level;
+  ! Identifier for the supplier of the item
+  INT supplier_id;
+  ! Date the record was last updated (up to 11 characters, e.g., "YYYY-MM-DD")
+  STRING last_updated[0:10];
+END; ! End of item_record structure
+
+! Define the structure for a customer record
+STRUCT customer_record;
+BEGIN
+  ! Unique identifier for the customer
+  INT customer_id;
+  ! Name of the customer (up to 51 characters)
+  STRING customer_name[0:50];
+  ! First line of the customer's address (up to 31 characters)
+  STRING address_line1[0:30];
+  ! Second line of the customer's address (up to 31 characters)
+  STRING address_line2[0:30];
+  ! Customer's city (up to 21 characters)
+  STRING city[0:20];
+  ! Customer's state (2 characters)
+  STRING state[0:2];
+  ! Customer's zip code (up to 10 characters)
+  STRING zip_code[0:9];
+  ! Customer's account balance (fixed-point decimal with 2 places)
+  FIXED(2) account_balance;
+  ! Add 2 bytes of padding to ensure subsequent fields align correctly (often on word boundaries)
+  FILLER 2;
+  ! Bit flags for customer attributes (packed into a single word)
+  ! Flag indicating if the customer account is active (1 bit)
+  UNSIGNED(1) is_active;
+  ! Flag indicating if the customer has credit privileges (1 bit)
+  UNSIGNED(1) has_credit;
+  ! Flag indicating if the customer is tax-exempt (1 bit)
+  UNSIGNED(1) tax_exempt;
+  ! Remaining 13 bits in the word are reserved for future use
+  UNSIGNED(13) reserved;
+END; ! End of customer_record structure
+
+! ===========================================================================
+! System Global Pointer Declarations
+! ===========================================================================
+! Declare a pointer (.SG suggests System Global space) to an integer representing system time
+! Typically points to a location maintained by the OS/environment.
+INT .SG system_time;
+
+! ===========================================================================
+! Global Variables
+! ===========================================================================
+! Global variable to store the last encountered error code, initialized to 0 (success)
+INT error_code := 0;
+! Global array of strings holding error messages corresponding to error codes
+! 'P' attribute likely means Protected (read-only after initialization in data segment)
+STRING error_messages[0:3] = 'P' := ["Success", "File not found", "Invalid input", "System error"];
+! Global counter for the number of transactions processed, initialized to 0
+INT transaction_count := 0;
+! Global array to hold the inventory records, dimensioned using the max_items literal
+STRUCT item_record inventory[0:max_items-1];
+! Global counter for the current number of items in the inventory array, initialized to 0
+INT inventory_count := 0;
+
+! ===========================================================================
+! Pointer Declarations
+! ===========================================================================
+! Declare a pointer to an integer, likely intended to point to error_code
+! .EXT might indicate External scope, but usage suggests a program global pointer.
+INT .EXT error_ptr;
+! Declare a pointer to a customer_record structure
+STRUCT customer_record .current_customer;
+! Declare a pointer to a string, likely used for dynamic buffer manipulation
+STRING .buffer;
+
+! ===========================================================================
+! Read-only Arrays
+! ===========================================================================
+! Global array holding numeric command codes
+! 'P' attribute likely means Protected (read-only after initialization)
+INT command_codes[0:5] = 'P' := [1, 2, 3, 4, 5, 6];
+! Global array holding string names corresponding to command codes
+! 'P' attribute likely means Protected (read-only after initialization)
+STRING command_names[0:5] = 'P' := ["ADD", "DELETE", "UPDATE", "QUERY", "REPORT", "EXIT"];
+
+! ===========================================================================
+! Equivalenced Variables
+! ===========================================================================
+! Declare last_error and initialize it with the current value of error_code.
+! Note: This is an initialization, not a true alias like EQUIVALENCE in some languages.
+! Changes to error_code later won't automatically reflect in last_error unless explicitly assigned.
+INT last_error = error_code;
+! Declare buffer_length and initialize it by accessing a system global value at index 10.
+! 'G'[10] often refers to specific process or system context information provided by Guardian.
+INT buffer_length = 'G'[10];
+
+! ===========================================================================
+! Global Block Declarations
+! ===========================================================================
+! Define a BLOCK named inventory_io to group related file I/O variables
+BLOCK inventory_io;
+  ! String to hold the filename for inventory data (up to 31 characters)
+  STRING filename[0:30];
+  ! Integer to hold file operation error status
+  INT file_error;
+  ! Integer to hold the count of records processed during file I/O
+  INT record_count;
+END BLOCK; ! End of inventory_io block
+
+! ===========================================================================
+! Main procedure
+! ===========================================================================
+! Define the main procedure, marked with MAIN attribute indicating the program entry point
+INT PROC main_proc, MAIN;
+  ! Local variable for loop iteration
+  INT i;
+  ! Local variable to hold status codes (though not used in this snippet)
+  INT status;
+  ! Local buffer for user input (up to 101 characters)
+  STRING input_buffer[0:100];
+  ! Local temporary string variable (up to 51 characters)
+  STRING temp_str[0:50];
+  ! Local variable for loop iteration or indexing
+  INT j;
+  ! Local variable to hold the user's selected command code
+  INT cmd;
+BEGIN ! Start of main_proc body
+  ! Allocate memory for the global buffer pointer based on buffer_size
+  ! and initialize it with spaces. (Assuming implicit allocation or prior setup for buffer pointer)
+  buffer := buffer_size * [" "]; ! Note: Actual memory allocation might need explicit calls in real TAL
+
+  ! Call the subprocedure to populate the inventory array with initial sample data
+  CALL initialize_inventory;
+
+  ! Initialize command variable
+  cmd := 0;
+  ! Start the main processing loop, continues until the user chooses to exit (cmd = 6)
+  WHILE cmd <> 6 DO
+    ! Display the menu options to the user
+    CALL display_menu;
+    ! Read the command code entered by the user (implementation assumed)
+    CALL read_command(cmd);
+
+    ! Process the entered command using a CASE statement
+    CASE cmd OF
+    BEGIN
+      ! Command 1: Add a new item (call corresponding procedure)
+      1: CALL add_item; ! Stubbed
+      ! Command 2: Delete an existing item (call corresponding procedure)
+      2: CALL delete_item; ! Stubbed
+      ! Command 3: Update an existing item (call corresponding procedure)
+      3: CALL update_item; ! Stubbed
+      ! Command 4: Query item details (call corresponding procedure)
+      4: CALL query_item; ! Stubbed
+      ! Command 5: Generate an inventory report (call corresponding procedure)
+      5: CALL generate_report; ! Stubbed
+      ! Command 6: Exit the program (do nothing, loop condition will terminate)
+      6: ;
+      ! Handle any other invalid command code
+      OTHERWISE
+        ! Set the global error code to indicate invalid input
+        error_code := error_invalid_input;
+        ! Call the procedure to print the corresponding error message
+        CALL print_error; ! Stubbed
+    END; ! End of CASE statement
+
+    ! Check if the command was not the exit command
+    IF cmd <> 6 THEN
+      ! Increment the global transaction counter
+      transaction_count := transaction_count + 1;
+      ! Call the external procedure to log the transaction details
+      CALL log_transaction(cmd, transaction_count); ! External Call
+    ENDIF;
+  ENDWHILE; ! End of main processing loop
+
+  ! === Cleanup / Final Actions ===
+  ! Assign the address of the global error_code variable to the error_ptr pointer
+  error_ptr := @error_code;
+  ! Check if the value pointed to by error_ptr (i.e., error_code) is non-zero (indicates an error occurred)
+  ! Note: This check seems redundant as errors are handled within the loop. Might be for a final status check.
+  IF error_ptr^ <> 0 THEN ! Dereference pointer with ^
+    CALL print_error; ! Stubbed
+  ENDIF;
+
+  ! === Example of Bit Manipulation ===
+  ! Check if there are any items in the inventory
+  IF inventory_count > 0 THEN
+    ! --- POTENTIAL ISSUE ---
+    ! Assign the address of the *structure definition* 'customer_record' to the pointer.
+    ! This is likely INCORRECT. It should point to an allocated instance or an existing record.
+    ! current_customer := @customer_record;
+    ! --- CORRECTED INTENT (ASSUMPTION) ---
+    ! To demonstrate, let's assume we want to modify a hypothetical *first* customer record.
+    ! We would need an actual customer array or allocation, e.g.,
+    ! STRUCT customer_record customers[0:max_customers-1];
+    ! current_customer := @customers[0];
+    ! --- END ASSUMPTION ---
+
+    ! Assuming current_customer points to a valid customer_record instance:
+    ! Set the is_active bit flag to 1 (TRUE)
+    current_customer.is_active := 1;
+    ! Set the tax_exempt bit flag to 1 (TRUE)
+    current_customer.tax_exempt := 1;
+    ! Clear the reserved bits (set to 0)
+    current_customer.reserved := 0;
+    ! Note: Direct assignment to bit fields like this is a feature of TAL.
+  ENDIF;
+
+  ! Return the success status code (0) to the operating system or calling process
+  RETURN success;
+END; ! End of main_proc
+
+! ===========================================================================
+! Subprocedures (Implementations)
+! ===========================================================================
+
+! ---------------------------------------------------------------------------
+! Procedure: initialize_inventory
+! Purpose: Populates the global inventory array with some sample data.
+! ---------------------------------------------------------------------------
+PROC initialize_inventory;
+  ! Local variable for loop iteration (though not used in this version)
+  INT i;
+BEGIN ! Start of initialize_inventory body
+  ! Set the global count of inventory items to 3
+  inventory_count := 3;
+
+  ! --- Populate Item 1 (index 0) ---
+  ! Assign item ID
+  inventory[0].item_id := 1001;
+  ! Assign item name
+  inventory[0].item_name := "Widget A";
+  ! Assign item price (Note: 'F' suffix denotes FIXED literal)
+  inventory[0].item_price := 19.99F;
+  ! Assign quantity on hand
+  inventory[0].quantity_on_hand := 150;
+  ! Assign reorder level
+  inventory[0].reorder_level := 25;
+  ! Assign supplier ID
+  inventory[0].supplier_id := 101;
+  ! Assign last updated date
+  inventory[0].last_updated := "2025-04-01";
+
+  ! --- Populate Item 2 (index 1) ---
+  inventory[1].item_id := 1002;
+  inventory[1].item_name := "Widget B";
+  inventory[1].item_price := 29.99F;
+  inventory[1].quantity_on_hand := 75;
+  inventory[1].reorder_level := 15;
+  inventory[1].supplier_id := 102;
+  inventory[1].last_updated := "2025-04-01";
+
+  ! --- Populate Item 3 (index 2) ---
+  inventory[2].item_id := 1003;
+  inventory[2].item_name := "Widget C";
+  inventory[2].item_price := 39.99F;
+  inventory[2].quantity_on_hand := 50;
+  inventory[2].reorder_level := 10;
+  inventory[2].supplier_id := 101;
+  inventory[2].last_updated := "2025-04-01";
+END; ! End of initialize_inventory
+
+! ---------------------------------------------------------------------------
+! Procedure: display_menu
+! Purpose: Displays the main menu options to the user's terminal.
+! Assumes write_line and write are available procedures for terminal output.
+! ---------------------------------------------------------------------------
+PROC display_menu;
+  ! Local variable for loop iteration
+  INT i;
+BEGIN ! Start of display_menu body
+  ! Prepare the menu title string in the global buffer
+  buffer := "==== Inventory System Menu ====";
+  ! Write the buffer content to the terminal (assuming write_line handles newline)
+  CALL write_line(buffer, 30); ! Stubbed / Assumed External
+
+  ! Loop through the available commands (indices 0 to 5)
+  FOR i := 0 TO 5 DO
+    ! Construct the menu item string in the buffer
+    ! Start with indentation
+    buffer := "  ";
+    ! Insert the command code (integer converted implicitly to character/digit if possible, or needs formatting)
+    ! TAL might require explicit conversion INT->STRING here. Assuming implicit for simplicity.
+    buffer[2] := command_codes[i]; ! Potential type mismatch INT to STRING char
+    ! Add separator
+    buffer[3] := ". ";
+    ! Append the command name string
+    buffer[5] := command_names[i]; ! Appends string starting at index 5
+    ! Write the formatted menu item line to the terminal
+    CALL write_line(buffer, 15); ! Stubbed / Assumed External (Length 15 might truncate)
+  ENDFOR;
+
+  ! Prepare the prompt string
+  buffer := "Enter command: ";
+  ! Write the prompt to the terminal (assuming write does not add newline)
+  CALL write(buffer, 15); ! Stubbed / Assumed External
+END; ! End of display_menu
+
+! ---------------------------------------------------------------------------
+! Placeholder/Stubbed Procedures (Need Implementation)
+! ---------------------------------------------------------------------------
+
+! Procedure to print error messages based on global error_code
+PROC print_error;
+BEGIN
+  ! Implementation needed: Look up error_messages[error_code] and print it.
+  ! Example: CALL write_line(error_messages[error_code], length);
+END;
+
+! Procedure to add an item to the inventory
+PROC add_item; BEGIN ! Implementation needed END;
+! Procedure to delete an item from the inventory
+PROC delete_item; BEGIN ! Implementation needed END;
+! Procedure to update an item in the inventory
+PROC update_item; BEGIN ! Implementation needed END;
+! Procedure to query item details
+PROC query_item; BEGIN ! Implementation needed END;
+! Procedure to generate an inventory report
+PROC generate_report; BEGIN ! Implementation needed END;
+! Procedure to read a command from the user
+PROC read_command(INT REF cmd); BEGIN ! Implementation needed END;
+! Procedure to write a line to the output (e.g., terminal)
+PROC write_line(STRING line; INT len); BEGIN ! Implementation needed END;
+! Procedure to write output without a newline
+PROC write(STRING line; INT len); BEGIN ! Implementation needed END;
+
+! ===========================================================================
+! End of Program
+! ===========================================================================
