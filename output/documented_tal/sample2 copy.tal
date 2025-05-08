@@ -1,0 +1,442 @@
+
+! ===========================================================================
+! Comprehensive TAL Program Sample
+! Demonstrates arrays, pointers, subprocs, global variables, external callouts,
+! assignments, byte array operations, bit manipulation, and other TAL features
+! ===========================================================================
+
+! Program Name Declaration
+NAME inventory_system;
+
+! Forward declaration for a procedure defined later in this module
+FORWARD PROC print_error;
+! Forward declaration for a structure defined later in this module
+FORWARD STRUCT customer_record;
+
+! Declaration of procedures defined in external modules (linked separately)
+EXTERNAL PROC log_transaction;
+EXTERNAL PROC fetch_customer_data;
+
+! Global literal declarations (compile-time constants)
+! Maximum number of items the inventory array can hold
+LITERAL max_items = 1000;
+! Maximum number of customers (used if customer data were managed here)
+LITERAL max_customers = 500;
+! Standard buffer size for I/O or string operations
+LITERAL buffer_size = 4096;
+! Status code for successful operation
+LITERAL success = 0;
+! Error code for file not found condition
+LITERAL error_file_not_found = 1;
+! Error code for invalid user input
+LITERAL error_invalid_input = 2;
+! Generic system error code
+LITERAL error_system = 3;
+
+! Type definitions (aliases for standard types)
+! Alias for Integer type, often used for IDs
+INT item_id;
+! Alias for String type, often used for names
+STRING item_name;
+
+! Global structure definition for an inventory item record
+STRUCT item_record;
+BEGIN
+  ! Unique identifier for the item
+  INT item_id;
+  ! Name of the item (up to 31 characters)
+  STRING item_name[0:30];
+  ! Price of the item (fixed-point with 2 decimal places)
+  FIXED(2) item_price;
+  ! Current quantity in stock
+  INT quantity_on_hand;
+  ! Minimum quantity before reordering is needed
+  INT reorder_level;
+  ! Identifier for the supplier of this item
+  INT supplier_id;
+  ! Date the record was last updated (YYYY-MM-DD format, 11 chars)
+  STRING last_updated[0:10];
+END; ! End of item_record structure
+
+! Global structure definition for a customer record
+STRUCT customer_record;
+BEGIN
+  ! Unique identifier for the customer
+  INT customer_id;
+  ! Name of the customer (up to 51 characters)
+  STRING customer_name[0:50];
+  ! First line of the customer's address (up to 31 characters)
+  STRING address_line1[0:30];
+  ! Second line of the customer's address (up to 31 characters)
+  STRING address_line2[0:30];
+  ! City part of the address (up to 21 characters)
+  STRING city[0:20];
+  ! State part of the address (2 characters)
+  STRING state[0:2];
+  ! Zip code part of the address (up to 10 characters)
+  STRING zip_code[0:9];
+  ! Customer's account balance (fixed-point with 2 decimal places)
+  FIXED(2) account_balance;
+  ! 2 bytes of filler for alignment purposes (often needed before bitfields)
+  FILLER 2;
+  ! Bit flags for customer attributes (packed into a single word)
+  ! 1 bit: 1 if customer is active, 0 otherwise
+  UNSIGNED(1) is_active;
+  ! 1 bit: 1 if customer has credit enabled, 0 otherwise
+  UNSIGNED(1) has_credit;
+  ! 1 bit: 1 if customer is tax exempt, 0 otherwise
+  UNSIGNED(1) tax_exempt;
+  ! 13 bits: Reserved for future use
+  UNSIGNED(13) reserved;
+END; ! End of customer_record structure
+
+! System global pointer declaration (points to system-maintained data)
+! Pointer to the system time value
+INT .SG system_time;
+
+! Global variable declarations
+! Holds the error code of the last operation (0 = success)
+INT error_code := 0;
+! Array of error messages corresponding to error codes (Pointer-based init)
+STRING error_messages[0:3] = 'P' := ["Success", "File not found", "Invalid input", "System error"];
+! Counter for the number of transactions processed
+INT transaction_count := 0;
+! Array to hold the inventory records (size defined by max_items literal)
+STRUCT item_record inventory[0:max_items-1];
+! Counter for the number of valid items currently in the inventory array
+INT inventory_count := 0;
+
+! Pointer declarations
+! External pointer (defined elsewhere, used here - potentially for sharing error status)
+! Note: Assignment `error_ptr := @error_code` in main suggests it might be used
+! differently than a typical external definition, perhaps just demonstrating pointers.
+INT .EXT error_ptr;
+! Pointer to a customer_record structure (used for accessing customer data)
+STRUCT customer_record .current_customer;
+! Pointer to a string buffer (used for I/O and string manipulation)
+STRING .buffer;
+
+! Read-only arrays (initialized at compile time, cannot be modified)
+! Array holding numeric command codes for the menu
+INT command_codes[0:5] = 'P' := [1, 2, 3, 4, 5, 6];
+! Array holding string names for the menu commands
+STRING command_names[0:5] = 'P' := ["ADD", "DELETE", "UPDATE", "QUERY", "REPORT", "EXIT"];
+
+! Equivalenced variables (alternative names for existing variables or system locations)
+! last_error is another name for the global variable error_code
+INT last_error = error_code;
+! buffer_length refers to a system global location (e.g., related to terminal I/O buffer length)
+INT buffer_length = 'G'[10]; ! 'G'[10] often relates to terminal characteristics
+
+! Global block declaration (groups related variables under a common name)
+BLOCK inventory_io;
+  ! Filename used for inventory data I/O
+  STRING filename[0:30];
+  ! Error status from file operations within this block
+  INT file_error;
+  ! Count of records processed during I/O within this block
+  INT record_count;
+END BLOCK; ! End of inventory_io block
+
+! ===========================================================================
+! Main procedure - Program Entry Point
+! ===========================================================================
+INT PROC main_proc, MAIN;
+  ! Local variable declarations for main_proc
+  INT i; ! Loop counter or general integer variable
+  INT status; ! Holds status codes from function calls
+  STRING input_buffer[0:100]; ! Buffer for user input
+  STRING temp_str[0:50]; ! Temporary string variable
+  INT j; ! Another general integer variable
+  INT cmd; ! Holds the command code entered by the user
+BEGIN
+  ! Allocate memory for the global buffer pointer and initialize it with spaces
+  ! Note: TAL requires explicit allocation for pointers unless they point to existing statics.
+  ! This syntax `buffer := buffer_size * [" "]` is conceptual; actual allocation
+  ! might use ALLOCATE or point buffer to a static array if one existed.
+  ! Assuming 'buffer' is intended to point to a dynamically managed area or a large static buffer.
+  ! For this example, let's assume it points to a conceptual large buffer initialized.
+  ! A more realistic TAL approach might involve defining a large static array
+  ! and setting the pointer: e.g., STATIC STRING main_buffer[0:buffer_size-1]; buffer := @main_buffer;
+  buffer := buffer_size * [" "]; ! Conceptual initialization
+
+  ! Call subprocedure to populate the inventory array with initial sample data
+  CALL initialize_inventory;
+
+  ! Main processing loop - continues until user chooses to exit (cmd = 6)
+  cmd := 0; ! Initialize command
+  WHILE cmd <> 6 DO
+    ! Display the menu options to the user
+    CALL display_menu;
+    ! Read the command code entered by the user (passed by reference)
+    CALL read_command(cmd); ! Note: read_command is a stub in this example
+
+    ! Process the entered command using a CASE statement
+    CASE cmd OF
+    BEGIN
+      ! Command 1: Add Item
+      1: CALL add_item; ! Note: add_item is a stub
+      ! Command 2: Delete Item
+      2: CALL delete_item; ! Note: delete_item is a stub
+      ! Command 3: Update Item
+      3: CALL update_item; ! Note: update_item is a stub
+      ! Command 4: Query Item
+      4: CALL query_item; ! Note: query_item is a stub
+      ! Command 5: Generate Report
+      5: CALL generate_report; ! Note: generate_report is a stub
+      ! Command 6: Exit the program
+      6: ; ! No action needed, loop condition will terminate
+      ! Handle any other invalid command code
+      OTHERWISE
+        ! Set the global error code to indicate invalid input
+        error_code := error_invalid_input;
+        ! Call the procedure to print the corresponding error message
+        CALL print_error;
+    END; ! End of CASE statement
+
+    ! Log the transaction if the command was not EXIT
+    IF cmd <> 6 THEN
+      ! Increment the global transaction counter
+      transaction_count := transaction_count + 1;
+      ! Call the external procedure to log the transaction details
+      CALL log_transaction(cmd, transaction_count); ! Assumes log_transaction exists externally
+    ENDIF;
+  ENDWHILE; ! End of main processing loop
+
+  ! Cleanup / Final actions before exiting
+  ! Assign the address of the global error_code to the external pointer error_ptr
+  ! This might be for another module to check the final status, or just demonstration.
+  error_ptr := @error_code;
+  ! Check if the pointer is non-null (will always be true after assignment above)
+  ! and print the error message if error_code is non-zero.
+  IF error_ptr <> 0 THEN ! This check seems redundant immediately after assignment
+    ! Call print_error if the final error_code is not success (0)
+    CALL print_error; ! Note: print_error resets error_code to 0
+  ENDIF;
+
+  ! Example of bit manipulation using the customer_record structure
+  ! Check if there are any items in inventory (condition seems unrelated to customer)
+  IF inventory_count > 0 THEN
+    ! Set the current_customer pointer.
+    ! WARNING: This line is problematic in real TAL. It assigns the *address of the structure definition*
+    ! not an instance. It should point to an actual allocated or static customer_record.
+    ! E.g., current_customer := @some_customer_variable; or ALLOCATE customer_record GIVING current_customer;
+    ! Assuming for demonstration it points to a valid record somehow.
+    current_customer := @customer_record; ! Conceptual/Incorrect: Should point to an instance
+
+    ! Set the is_active bit flag to 1 (true)
+    current_customer.is_active := 1;
+    ! Set the tax_exempt bit flag to 1 (true)
+    current_customer.tax_exempt := 1;
+    ! Clear the reserved bits to 0
+    current_customer.reserved := 0;
+    ! Note: This demonstrates accessing and modifying bitfields within a structure via a pointer.
+  ENDIF;
+
+  ! Return success status code to the operating system or calling process
+  RETURN success;
+END; ! End of main_proc
+
+! ===========================================================================
+! Subprocedures (Helper functions)
+! ===========================================================================
+
+! Procedure to initialize the inventory array with some sample data
+PROC initialize_inventory;
+  ! Local loop counter
+  INT i;
+BEGIN
+  ! Set the global count of items in inventory
+  inventory_count := 3;
+
+  ! Populate the first inventory record (index 0)
+  inventory[0].item_id := 1001;
+  inventory[0].item_name := "Widget A";
+  inventory[0].item_price := 19.99F; ! F suffix denotes FIXED literal
+  inventory[0].quantity_on_hand := 150;
+  inventory[0].reorder_level := 25;
+  inventory[0].supplier_id := 101;
+  inventory[0].last_updated := "2025-04-01";
+
+  ! Populate the second inventory record (index 1)
+  inventory[1].item_id := 1002;
+  inventory[1].item_name := "Widget B";
+  inventory[1].item_price := 29.99F;
+  inventory[1].quantity_on_hand := 75;
+  inventory[1].reorder_level := 15;
+  inventory[1].supplier_id := 102;
+  inventory[1].last_updated := "2025-04-01";
+
+  ! Populate the third inventory record (index 2)
+  inventory[2].item_id := 1003;
+  inventory[2].item_name := "Widget C";
+  inventory[2].item_price := 39.99F;
+  inventory[2].quantity_on_hand := 50;
+  inventory[2].reorder_level := 10;
+  inventory[2].supplier_id := 101;
+  inventory[2].last_updated := "2025-04-01";
+END; ! End of initialize_inventory procedure
+
+! Procedure to display the command menu to the user
+PROC display_menu;
+  ! Local loop counter
+  INT i;
+BEGIN
+  ! Use the global buffer pointer to build the output string
+  ! Display the menu title
+  buffer := "==== Inventory System Menu ====";
+  ! Call a (stubbed) procedure to write the buffer content to output (e.g., terminal)
+  CALL write_line(buffer, 30); ! Assumes write_line takes buffer and length
+
+  ! Loop through the command codes and names to display options
+  FOR i := 0 TO 5 DO
+    ! Start building the line in the buffer
+    buffer := "  "; ! Indentation
+    ! Place the command code (integer) into the buffer (requires conversion or specific I/O)
+    ! TAL string assignment from INT usually needs explicit conversion.
+    ! This line assumes direct assignment works or is handled by write_line/write.
+    ! A more typical TAL way might involve INTTOSTRING or formatted write.
+    buffer[2] := command_codes[i]; ! Conceptual: Assign INT to STRING char position
+    buffer[3] := ". "; ! Add separator
+    ! Concatenate the command name string
+    buffer[5] := command_names[i]; ! Assigns the command name string
+    ! Write the formatted menu item line
+    CALL write_line(buffer, 15); ! Approximate length
+  ENDFOR;
+
+  ! Display the prompt for user input
+  buffer := "Enter command: ";
+  ! Call a (stubbed) procedure to write the prompt without a newline
+  CALL write(buffer); ! Assumes write takes buffer and writes without newline
+END; ! End of display_menu procedure
+
+! Procedure to read the user's command (STUB)
+! Takes an integer parameter 'cmd' by reference to return the value
+PROC read_command(INT PARAM cmd);
+BEGIN
+  ! --- STUB ---
+  ! This procedure should contain code to:
+  ! 1. Read input from the user (e.g., from the terminal).
+  ! 2. Convert the input string to an integer.
+  ! 3. Validate the input (optional here, could be done in main loop).
+  ! 4. Assign the resulting integer command code to the 'cmd' parameter.
+  ! Example conceptual assignment:
+  ! cmd := 1; ! Replace with actual input reading logic
+  ! --- END STUB ---
+END; ! End of read_command procedure
+
+! Procedure to add a new item to the inventory (STUB)
+PROC add_item;
+BEGIN
+  ! --- STUB ---
+  ! This procedure should contain code to:
+  ! 1. Prompt the user for details of the new item (ID, name, price, etc.).
+  ! 2. Read the user's input.
+  ! 3. Validate the input data.
+  ! 4. Check if the inventory array is full (inventory_count >= max_items).
+  ! 5. Check for duplicate item IDs.
+  ! 6. If valid and space available, add the new item to the 'inventory' array.
+  ! 7. Increment 'inventory_count'.
+  ! 8. Set 'error_code' if any issues occur.
+  ! --- END STUB ---
+END; ! End of add_item procedure
+
+! Procedure to delete an item from the inventory (STUB)
+PROC delete_item;
+BEGIN
+  ! --- STUB ---
+  ! This procedure should contain code to:
+  ! 1. Prompt the user for the ID of the item to delete.
+  ! 2. Read the user's input.
+  ! 3. Find the item in the 'inventory' array.
+  ! 4. If found, remove it (e.g., by shifting subsequent elements up).
+  ! 5. Decrement 'inventory_count'.
+  ! 6. Set 'error_code' if the item is not found or other issues occur.
+  ! --- END STUB ---
+END; ! End of delete_item procedure
+
+! Procedure to update an existing item in the inventory (STUB)
+PROC update_item;
+BEGIN
+  ! --- STUB ---
+  ! This procedure should contain code to:
+  ! 1. Prompt the user for the ID of the item to update.
+  ! 2. Read the user's input.
+  ! 3. Find the item in the 'inventory' array.
+  ! 4. If found, prompt the user for the new details (e.g., price, quantity).
+  ! 5. Read and validate the new data.
+  ! 6. Update the corresponding fields in the 'inventory' record.
+  ! 7. Update the 'last_updated' field.
+  ! 8. Set 'error_code' if the item is not found or other issues occur.
+  ! --- END STUB ---
+END; ! End of update_item procedure
+
+! Procedure to query and display details of an item (STUB)
+PROC query_item;
+BEGIN
+  ! --- STUB ---
+  ! This procedure should contain code to:
+  ! 1. Prompt the user for the ID of the item to query.
+  ! 2. Read the user's input.
+  ! 3. Find the item in the 'inventory' array.
+  ! 4. If found, display all details of the item record.
+  ! 5. Set 'error_code' if the item is not found.
+  ! --- END STUB ---
+END; ! End of query_item procedure
+
+! Procedure to generate an inventory report (STUB)
+PROC generate_report;
+BEGIN
+  ! --- STUB ---
+  ! This procedure should contain code to:
+  ! 1. Iterate through the 'inventory' array from index 0 to 'inventory_count - 1'.
+  ! 2. For each item, format and display its details (e.g., ID, name, quantity, price).
+  ! 3. Potentially calculate and display summary information (e.g., total inventory value).
+  ! 4. Output could go to the terminal or a report file.
+  ! --- END STUB ---
+END; ! End of generate_report procedure
+
+! Procedure to print an error message based on the global error_code
+PROC print_error;
+BEGIN
+  ! Check if the error_code is within the bounds of the error_messages array
+  IF error_code >= 0 AND error_code <= 3 THEN
+    ! Use the global buffer to hold the error message
+    buffer := error_messages[error_code];
+    ! Call the (stubbed) procedure to write the error message to output
+    CALL write_line(buffer, STRINGLEN(buffer)); ! Assuming STRINGLEN gets length
+  ELSE
+    ! Handle unknown error codes
+    buffer := "Unknown error occurred.";
+    CALL write_line(buffer, 23);
+  ENDIF;
+  ! Reset the global error code to success after printing the message
+  error_code := success;
+END; ! End of print_error procedure
+
+! Procedure to write a line to output (STUB)
+! Assumes parameters: string pointer and length
+PROC write_line(STRING PARAM line_ptr; INT PARAM line_len);
+BEGIN
+  ! --- STUB ---
+  ! This procedure should contain code to:
+  ! 1. Take the string pointed to by 'line_ptr' and its 'line_len'.
+  ! 2. Write the string content to the standard output device (e.g., terminal).
+  ! 3. Append a newline character sequence.
+  ! Requires actual TAL I/O procedures (e.g., WRITEREADX, calls to $TERM).
+  ! --- END STUB ---
+END; ! End of write_line procedure
+
+! Procedure to write data to output without a newline (STUB)
+! Assumes parameter: string pointer
+PROC write(STRING PARAM line_ptr);
+BEGIN
+  ! --- STUB ---
+  ! This procedure should contain code to:
+  ! 1. Take the string pointed to by 'line_ptr'.
+  ! 2. Determine its length (e.g., using STRINGLEN or assuming null termination if applicable).
+  ! 3. Write the string content to the standard output device (e.g., terminal).
+  ! 4. Do NOT append a newline character sequence.
+  ! Requires actual TAL I/O procedures.
+  ! --- END STUB ---
+END; ! End of write procedure

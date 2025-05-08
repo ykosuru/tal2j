@@ -1,0 +1,19 @@
+Test Data
+TestCaseID,Description,Input_Command,Expected_Output_Log_Snippet,Expected_ErrorCode_After_Input,Expected_ErrorCode_After_Processing,Expected_TransactionCount_Change,Expected_Program_Behavior
+TC001,Valid Command - Add Item (Placeholder),1,"Add item functionality not yet implemented.\n[External Logger] Logged transaction: Command=1, Count=1",0,0,+1,Continue Loop
+TC002,Valid Command - Delete Item (Placeholder),2,"Delete item functionality not yet implemented.\n[External Logger] Logged transaction: Command=2, Count=X",0,0,+1,Continue Loop
+TC003,Valid Command - Update Item (Placeholder),3,"Update item functionality not yet implemented.\n[External Logger] Logged transaction: Command=3, Count=X",0,0,+1,Continue Loop
+TC004,Valid Command - Query Item (Placeholder),4,"Query item functionality not yet implemented.\n[External Logger] Logged transaction: Command=4, Count=X",0,0,+1,Continue Loop
+TC005,Valid Command - Generate Report (Placeholder),5,"Generate report functionality not yet implemented.\n[External Logger] Logged transaction: Command=5, Count=X",0,0,+1,Continue Loop
+TC006,Valid Command - Exit,6,"Exiting Inventory System...\nPerforming final checks...\nUpdating customer status flags (example)...\nCurrent Customer State: CustomerRecord{customerId=9001, isActive=true, taxExempt=true}\nInventory System terminated normally.",0,0,0,Terminate Normally
+TC007,Invalid Command - Zero,0,"Error: Invalid command or input.",0,0,0,Continue Loop
+TC008,Invalid Command - Negative Number,-1,"Error: Invalid command or input.",0,0,0,Continue Loop
+TC009,Invalid Command - Number Above Range,7,"Error: Invalid command or input.",0,0,0,Continue Loop
+TC010,Invalid Input - Non-numeric String,"abc","Error: Please enter a valid integer command.",1,0,0,Continue Loop
+TC011,Invalid Input - Decimal String,"3.14","Error: Please enter a valid integer command.",1,0,0,Continue Loop
+TC012,Invalid Input - Empty String,"","Error: Please enter a valid integer command.",1,0,0,Continue Loop
+TC013,Valid Command - Add Item (Boundary - First Valid),1,"Add item functionality not yet implemented.\n[External Logger] Logged transaction: Command=1, Count=X",0,0,+1,Continue Loop
+TC014,Valid Command - Exit (Boundary - Last Valid),6,"Exiting Inventory System...\nPerforming final checks...\nUpdating customer status flags (example)...\nCurrent Customer State: CustomerRecord{customerId=9001, isActive=true, taxExempt=true}\nInventory System terminated normally.",0,0,0,Terminate Normally
+TC015,Sequence - Valid Add then Invalid Number,1 then 99,"Add item functionality not yet implemented.\n[External Logger] Logged transaction: Command=1, Count=X\nError: Invalid command or input.",0,0,+1 then 0,Continue Loop
+TC016,Sequence - Valid Report then Invalid String,5 then "test","Generate report functionality not yet implemented.\n[External Logger] Logged transaction: Command=5, Count=X\nError: Please enter a valid integer command.",0 then 1,0,+1 then 0,Continue Loop
+TC017,Sequence - Multiple Valid Commands then Exit,1 then 4 then 6,"Add item functionality not yet implemented.\n[External Logger] Logged transaction: Command=1, Count=X\nQuery item functionality not yet implemented.\n[External Logger] Logged transaction: Command=4, Count=Y\nExiting Inventory System...",0,0,+1 then +1 then 0,Terminate Normally

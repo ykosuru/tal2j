@@ -1,0 +1,22 @@
+flowchart TD
+    A[Start InventorySystem] --> B(Initialize Static Fields & Inventory);
+    B --> C{Main Loop: while cmd != 6};
+    C -- Loop Continues --> D(Call displayMenu);
+    D --> E[/Call readCommand() -> cmd/];
+    E --> F{Switch on cmd};
+    F -- 1..5 --> G(Call Placeholder Operation: Add/Delete/Update/Query/Report);
+    G --> H(Increment transactionCount);
+    H --> I(Call ExternalLogger.logTransaction);
+    I --> C;
+    F -- 6 (EXIT) --> J(Loop Ends);
+    F -- default (Invalid) --> K(Set errorCode = INVALID_INPUT);
+    K --> L(Call printError);
+    L --> C;
+    J --> M{Check: errorCode != 0?};
+    M -- Yes --> N(Call printError);
+    N --> O{Check: inventoryCount > 0?};
+    M -- No --> O;
+    O -- Yes --> P(Perform Bit Manipulation on currentCustomer);
+    P --> Q(System.exit(SUCCESS));
+    O -- No --> Q;
+    Q --> Z([End]);
