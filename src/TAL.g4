@@ -1,6 +1,6 @@
 grammar TAL;
 
-// Lexer Rules (MOVED TO TOP)
+// Lexer Rules
 QUESTION        : '?' ;
 LPAREN          : '(' ;
 RPAREN          : ')' ;
@@ -27,6 +27,7 @@ MOD             : '\\' ;
 LSHIFT          : '\'' '<' '<' '\'' ;
 RSHIFT          : '\'' '>' '>' '\'' ;
 ADDRESS_OF      : '@' ;
+ARROW           : '->' ;
 
 // --- Language Keywords ---
 AND_OP          : A N D ;
@@ -53,6 +54,8 @@ INTERRUPT_KW    : I N T E R R U P T ;
 LITERAL_KW      : L I T E R A L ;
 MAIN_KW         : M A I N ;
 NOT_OP          : N O T ;
+
+System: N O T ;
 OR_OP           : O R ;
 PRIVATE_KW      : P R I V A T E ;
 PRIV_KW         : P R I V ;
@@ -68,16 +71,18 @@ TO_STMT         : T O ;
 UNTIL_STMT      : U N T I L ;
 VARIABLE_KW     : V A R I A B L E ;
 WHILE_STMT      : W H I L E ;
+WHILE_SCAN_KW   : W H I L E ; // Specific for scan/rscan
+UNTIL_SCAN_KW   : U N T I L ; // Specific for scan/rscan
 
 // --- NEW Lexer Rules Added ---
-ASSERT_STMT     : A S S E R T ;   // Added for ASSERT statement
-CASE_STMT       : C A S E ;       // Added for CASE statement
-DROP_STMT       : D R O P ;       // Added for DROP statement
-GOTO_STMT       : G O T O ;       // Added for GOTO statement
-RSCAN_STMT      : R S C A N ;     // Added for RSCAN statement
-SCAN_STMT       : S C A N ;       // Added for SCAN statement
-STORE_STMT      : S T O R E ;     // Added for STORE statement
-USE_STMT        : U S E ;         // Added for USE statement
+ASSERT_STMT     : A S S E R T ;
+CASE_STMT       : C A S E ;
+DROP_STMT       : D R O P ;
+GOTO_STMT       : G O T O ;
+RSCAN_STMT      : R S C A N ;
+SCAN_STMT       : S C A N ;
+STORE_STMT      : S T O R E ;
+USE_STMT        : U S E ;
 
 // --- Directive Keywords ---
 ABORT_DIR_KEYWORD       : A B O R T ;
@@ -213,29 +218,26 @@ nameDeclaration
     : 'NAME' IDENTIFIER
     ;
 
-// FIXED: Block declaration now properly handles END with optional comment
 blockDeclaration
     : BLOCK_KW IDENTIFIER SEMI
       (declaration SEMI?)*
       (procedureDefinition)*
       (statement SEMI?)*
-      (END_KW | ENDBLOCK_KW) SEMI? (COMMENT)?  // Added optional comment for "END; ! END OF BLOCK"
+      (END_KW | ENDBLOCK_KW) SEMI? (COMMENT)?
     ;
 
 builtinFunctionCall
     : DOLLAR_SIGN IDENTIFIER LPAREN actualParameterList? RPAREN
     ;
 
-// FIXED: Literal declarations now properly handle multiple literals with commas
 literalDeclaration
     : LITERAL_KW literalItem (COMMA literalItem)* SEMI?
     ;
 
 literalItem
-    : IDENTIFIER EQ expression  // LITERAL uses = not :=
+    : IDENTIFIER EQ expression
     ;
 
-// FIXED: Variable declarations now handle complex forms with indirection and arrays
 variableDeclaration
     : typeSpecifier variableDeclarator (COMMA variableDeclarator)*
     ;
@@ -267,7 +269,6 @@ arrayLiteral
     : LBRACKET (expression (COMMA expression)*)? RBRACKET
     ;
 
-// FIXED: Struct declarations now properly handle .fed^msg syntax and nested structures
 structDeclaration
     : STRUCT_KW indirectionSpecifier? IDENTIFIER SEMI
       structDefinitionBody
@@ -291,10 +292,9 @@ structMemberDeclaration
     | literalDeclaration
     ;
 
-// FIXED: Procedure definitions now properly handle parameter type declarations
 procedureDefinition
     : typeSpecifier? (PROC_KW | SUBPROC_KW) IDENTIFIER (LPAREN formalParameterList? RPAREN)? procedureAttributes? SEMI
-      (formalParameterTypeDeclaration)*  // Multiple parameter type declarations
+      (formalParameterTypeDeclaration)*
       procedureBody?
     ;
 
@@ -304,10 +304,9 @@ formalParameterList
 
 formalParameter
     : typeSpecifier indirectionSpecifier? IDENTIFIER
-    | IDENTIFIER  // For cases where type is declared separately
+    | IDENTIFIER
     ;
 
-// FIXED: Parameter type declarations now handle indirection properly
 formalParameterTypeDeclaration
     : typeSpecifier indirectionSpecifier? IDENTIFIER (COMMA indirectionSpecifier? IDENTIFIER)* SEMI
     ;
@@ -326,6 +325,8 @@ procedureBody
 
 statement
     : assignmentStatement
+    | rscanStatement
+    | scanStatement
     | ifStatement
     | whileStatement
     | callStatement
@@ -333,17 +334,15 @@ statement
     | blockStatement
     | directiveLine
     | emptyStatement
-    | expression
     | forStatement
     | doStatement
-    | assertStatement  // NEW: Added for ASSERT statement
-    | caseStatement   // NEW: Added for CASE statement
-    | dropStatement   // NEW: Added for DROP statement
-    | gotoStatement   // NEW: Added for GOTO statement
-    | rscanStatement  // NEW: Added for RSCAN statement
-    | scanStatement   // NEW: Added for SCAN statement
-    | storeStatement  // NEW: Added for STORE statement
-    | useStatement    // NEW: Added for USE statement
+    | assertStatement
+    | caseStatement
+    | dropStatement
+    | gotoStatement
+    | storeStatement
+    | useStatement
+    | expression
     | error
     ;
 
@@ -367,19 +366,17 @@ bitFieldSpecifier
     : DOT LT expression (COLON expression)? GT
     ;
 
-// FIXED: If statements now properly handle ENDIF endings
 ifStatement
-    : IF_STMT expression THEN_STMT 
-      statement 
-      (ELSE_STMT statement)? 
-      (ENDIF_STMT SEMI?)?  // Made ENDIF optional but preferred
+    : IF_STMT expression THEN_STMT
+      statement
+      (ELSE_STMT statement)?
+      (ENDIF_STMT SEMI?)?
     ;
 
-// FIXED: While statements now properly handle ENDWHILE endings
 whileStatement
-    : WHILE_STMT expression DO_STMT 
-      statement 
-      (ENDWHILE_STMT SEMI?)?  // Made ENDWHILE optional but preferred
+    : WHILE_STMT expression DO_STMT
+      statement
+      (ENDWHILE_STMT SEMI?)?
     ;
 
 forStatement
@@ -398,13 +395,23 @@ returnStatement
     : RETURN_STMT expression? SEMI?
     ;
 
-// NEW: Parser rules for new statements
 assertStatement
     : ASSERT_STMT expression SEMI?
     ;
 
 caseStatement
-    : CASE_STMT expression OF_KW caseLabelList END_KW SEMI?
+    : CASE_STMT expression OF_KW
+      BEGIN_KW
+      (caseAlternative)+
+      END_KW SEMI?
+    ;
+
+caseAlternative
+    : caseValueList ARROW statement
+    ;
+
+caseValueList
+    : expression (COMMA expression)*
     ;
 
 caseLabelList
@@ -412,7 +419,7 @@ caseLabelList
     ;
 
 caseLabel
-    : expression COLON statement
+    : expression COLON statement SEMI?
     ;
 
 dropStatement
@@ -423,12 +430,12 @@ gotoStatement
     : GOTO_STMT IDENTIFIER SEMI?
     ;
 
-rscanStatement
-    : RSCAN_STMT lvalue COMMA expression SEMI?
+scanStatement
+    : SCAN_STMT expression (WHILE_STMT | UNTIL_STMT) expression ARROW ADDRESS_OF IDENTIFIER SEMI?
     ;
 
-scanStatement
-    : SCAN_STMT lvalue COMMA expression SEMI?
+rscanStatement  
+    : RSCAN_STMT expression (WHILE_STMT | UNTIL_STMT) expression ARROW ADDRESS_OF IDENTIFIER SEMI?
     ;
 
 storeStatement
@@ -439,11 +446,8 @@ useStatement
     : USE_STMT IDENTIFIER SEMI?
     ;
 
-// NEW: Added OF_KW for caseStatement
 OF_KW
     : O F ;
-
-// Existing parser rules continue unchanged below...
 
 actualParameterList
     : expression (COMMA expression)*
@@ -493,8 +497,8 @@ primaryExpression
     | LPAREN expression RPAREN
     ;
 
-qualifiedName 
-    : indirectionSpecifier? IDENTIFIER (DOT IDENTIFIER)* 
+qualifiedName
+    : indirectionSpecifier? IDENTIFIER (DOT IDENTIFIER)*
     ;
 
 arrayAccess
@@ -514,5 +518,5 @@ literal
     | BINARY_LITERAL
     ;
 
-error : .+? ; // Catch-all for unrecognized tokens
+error : .+? ;
 

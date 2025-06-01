@@ -3,6 +3,7 @@
 import uuid
 from antlr4 import *
 from antlr4.error.ErrorListener import ErrorListener
+from antlr4.tree.Tree import TerminalNode
 import re
 import sys
 import os
@@ -118,6 +119,7 @@ class CustomTALVisitor(TALVisitor):
 
         return line_in_stream + self.current_line_offset
     
+
     def clean_tal_identifier(self, identifier_text):
         if not identifier_text:
             return identifier_text
@@ -141,6 +143,31 @@ class CustomTALVisitor(TALVisitor):
         node = ASTNode(node_type if node_type else "UnknownVisitorNode", display_text, line_number=line_num_for_node)
         node.attributes["full_text_from_parser"] = original_text_for_node
         return node
+    
+    def visit(self, tree):
+        """Override visit to provide better error context"""
+        try:
+            return super().visit(tree)
+        except Exception as e:
+            # Create an error node with context
+            if hasattr(tree, 'getText'):
+                text = tree.getText()[:50]  # First 50 chars
+            else:
+                text = str(tree)[:50]
+            
+            error_node = ASTNode("VisitorError", text, line_number=self._get_original_line(tree))
+            error_node.attributes["error_message"] = str(e)
+            error_node.attributes["error_type"] = type(e).__name__
+            return error_node
+        
+    def visitChildren(self, node):
+        """Override to provide better error handling"""
+        try:
+            return super().visitChildren(node)
+        except Exception as e:
+            # If we can't visit children, create an error node
+            error_node = ASTNode("VisitError", str(e), line_number=0)
+            return error_node
     
     def visitProgramElement(self, ctx):
         if ctx.directiveLine():
@@ -368,12 +395,16 @@ class CustomTALVisitor(TALVisitor):
         node.attributes["selector"] = ctx.expression().getText().strip()
         node.add_child(self.visit(ctx.expression()))
         
-        for case_label_ctx in ctx.caseLabelList().caseLabel():
-            label_node = ASTNode("caseLabel", case_label_ctx.getText().strip(), line_number=self._get_original_line(case_label_ctx))
-            label_node.attributes["value"] = case_label_ctx.expression().getText().strip()
-            label_node.add_child(self.visit(case_label_ctx.expression()))
-            label_node.add_child(self.visit(case_label_ctx.statement()))
-            node.add_child(label_node)
+        # Handle case labels properly
+        if ctx.caseLabelList():
+            for case_label_ctx in ctx.caseLabelList().caseLabel():
+                label_node = ASTNode("caseLabel", case_label_ctx.getText().strip(), line_number=self._get_original_line(case_label_ctx))
+                if case_label_ctx.expression():
+                    label_node.attributes["value"] = case_label_ctx.expression().getText().strip()
+                    label_node.add_child(self.visit(case_label_ctx.expression()))
+                if case_label_ctx.statement():
+                    label_node.add_child(self.visit(case_label_ctx.statement()))
+                node.add_child(label_node)
         
         if ctx.END_KW():
             node.add_child(self._create_node(ctx.END_KW().getSymbol(), "EndCaseMarker"))
@@ -390,20 +421,38 @@ class CustomTALVisitor(TALVisitor):
         node.attributes["label"] = self.clean_tal_identifier(ctx.IDENTIFIER().getText())
         return node
 
-    def visitRscanStatement(self, ctx):
-        node = self._create_node(ctx, "rscanStatement", text_override=ctx.getText().strip())
-        node.attributes["target"] = ctx.lvalue().getText().strip()
-        node.attributes["expression"] = ctx.expression().getText().strip()
-        node.add_child(self.visit(ctx.lvalue()))
-        node.add_child(self.visit(ctx.expression()))
-        return node
-
     def visitScanStatement(self, ctx):
         node = self._create_node(ctx, "scanStatement", text_override=ctx.getText().strip())
-        node.attributes["target"] = ctx.lvalue().getText().strip()
-        node.attributes["expression"] = ctx.expression().getText().strip()
-        node.add_child(self.visit(ctx.lvalue()))
-        node.add_child(self.visit(ctx.expression()))
+        
+        # Handle the expressions
+        expressions = ctx.expression()
+        if len(expressions) >= 2:
+            node.attributes["target"] = expressions[0].getText().strip()
+            node.attributes["condition"] = expressions[1].getText().strip()
+            node.add_child(self.visit(expressions[0]))
+            node.add_child(self.visit(expressions[1]))
+        
+        # Handle the pointer reference
+        if ctx.IDENTIFIER():
+            node.attributes["pointer"] = self.clean_tal_identifier(ctx.IDENTIFIER().getText())
+        
+        return node
+
+    def visitRscanStatement(self, ctx):
+        node = self._create_node(ctx, "rscanStatement", text_override=ctx.getText().strip())
+        
+        # Handle the expressions  
+        expressions = ctx.expression()
+        if len(expressions) >= 2:
+            node.attributes["target"] = expressions[0].getText().strip()
+            node.attributes["condition"] = expressions[1].getText().strip()
+            node.add_child(self.visit(expressions[0]))
+            node.add_child(self.visit(expressions[1]))
+        
+        # Handle the pointer reference
+        if ctx.IDENTIFIER():
+            node.attributes["pointer"] = self.clean_tal_identifier(ctx.IDENTIFIER().getText())
+        
         return node
 
     def visitStoreStatement(self, ctx):
@@ -515,6 +564,12 @@ class CustomTALVisitor(TALVisitor):
             node = ASTNode("UnknownLiteral", text, line_number=line)
         
         return node
+    
+    def visitErrorNode(self, node):
+        """Handle error nodes gracefully"""
+        error_node = ASTNode("ErrorNode", node.getText(), line_number=self._get_original_line(node))
+        error_node.attributes["error"] = "Parse error encountered"
+        return error_node
 
 class TALASTGenerator:
     def __init__(self):
@@ -772,12 +827,13 @@ class TALASTGenerator:
         return None
 
     def _parse_case_manually(self, line, line_number):
-        case_match = re.match(r'CASE\s+(.+?)\s+OF\s+(.+?)\s+END\s*;?', line, re.IGNORECASE)
+        # Handle single-line case (unlikely in real TAL)
+        case_match = re.match(r'CASE\s+(.+?)\s+OF\s*', line, re.IGNORECASE)
         if case_match:
             node = ASTNode("caseStatement", line.strip(), line_number=line_number)
             node.attributes["selector"] = self.clean_tal_identifier(case_match.group(1).strip())
-            # Note: Full case label parsing requires multi-line context, so we store the raw text
-            node.attributes["case_labels"] = case_match.group(2).strip()
+            # Mark as multi-line construct
+            node.attributes["multiline"] = True
             return node
         return None
 
@@ -797,21 +853,25 @@ class TALASTGenerator:
             return node
         return None
 
-    def _parse_rscan_manually(self, line, line_number):
-        rscan_match = re.match(r'RSCAN\s+(.+?)\s*,\s*(.+?)\s*;?', line, re.IGNORECASE)
-        if rscan_match:
-            node = ASTNode("rscanStatement", line.strip(), line_number=line_number)
-            node.attributes["target"] = self.clean_tal_identifier(rscan_match.group(1).strip())
-            node.attributes["expression"] = self.clean_tal_identifier(rscan_match.group(2).strip())
-            return node
-        return None
-
     def _parse_scan_manually(self, line, line_number):
-        scan_match = re.match(r'SCAN\s+(.+?)\s*,\s*(.+?)\s*;?', line, re.IGNORECASE)
+        # Pattern: scan cw[1] while " " -> @begin_ptr;
+        scan_match = re.match(r'scan\s+(.+?)\s+while\s+(.+?)\s*->\s*(.+?)\s*;?', line, re.IGNORECASE)
         if scan_match:
             node = ASTNode("scanStatement", line.strip(), line_number=line_number)
             node.attributes["target"] = self.clean_tal_identifier(scan_match.group(1).strip())
-            node.attributes["expression"] = self.clean_tal_identifier(scan_match.group(2).strip())
+            node.attributes["condition"] = scan_match.group(2).strip()
+            node.attributes["pointer"] = self.clean_tal_identifier(scan_match.group(3).strip())
+            return node
+        return None
+
+    def _parse_rscan_manually(self, line, line_number):
+        # Pattern: rscan cw[$len(codeword_def.codewrd)] while " " -> @end_ptr;
+        rscan_match = re.match(r'rscan\s+(.+?)\s+while\s+(.+?)\s*->\s*(.+?)\s*;?', line, re.IGNORECASE)
+        if rscan_match:
+            node = ASTNode("rscanStatement", line.strip(), line_number=line_number)
+            node.attributes["target"] = self.clean_tal_identifier(rscan_match.group(1).strip())
+            node.attributes["condition"] = rscan_match.group(2).strip()
+            node.attributes["pointer"] = self.clean_tal_identifier(rscan_match.group(3).strip())
             return node
         return None
 
