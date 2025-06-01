@@ -1,0 +1,57 @@
+{"prompt": "TAL:\nPROC main_proc MAIN;\nBEGIN\n  CALL MYTERM(buffer);\n  CALL OPEN(buffer, hometerm);\n  WHILE 1 DO BEGIN\n    sbuffer := \"ENTER STRING\" ->;\n    CALL WRITEREAD(hometerm, buffer, 12, 68, num_xferred);\n    sbuffer[num_xferred] := 0;\n    SCAN sbuffer UNTIL \"*\" -> asterisk;\n    IF NOT $CARRY THEN BEGIN\n      ! Process asterisk\n    END;\n  END;\nEND;\n\nPseudocode:\n", "completion": "procedure main:\n    open terminal\n    loop forever:\n        display \"ENTER STRING\"\n        read input into buffer\n        if \"*\" exists in buffer:\n            process asterisk"}
+{"prompt": "TAL:\nPROC factorial(n, result);\nINT n, .result;\nBEGIN\n  IF n <= 1 THEN\n    result := 1;\n  ELSE BEGIN\n    CALL factorial(n - 1, result);\n    result := result * n;\n  END;\nEND;\n\nPseudocode:\n", "completion": "procedure factorial(n, result reference):\n    if n <= 1:\n        result = 1\n    else:\n        call factorial(n - 1, result)\n        result = result * n"}
+{"prompt": "TAL:\nINT .ptr := %100000;\nptr := [1, 2, 3];\n\nPseudocode:\n", "completion": "pointer ptr = address 100000\n*ptr = [1, 2, 3]"}
+{"prompt": "TAL:\nLITERAL len = 100;\nINT .array[0:len - 1];\nINT item := 1;\nINT i := 0;\nWHILE item <> 0 DO BEGIN\n  item := array[i];\n  i := i + 1;\nEND;\n\nPseudocode:\n", "completion": "define array[0 to 99]\ni = 0\nitem = 1\nwhile item \u2260 0:\n    item = array[i]\n    i += 1"}
+{"prompt": "TAL:\nresult := (num1 + num2).<4:7>;\n\nPseudocode:\n", "completion": "result = extract bits 4 to 7 from (num1 + num2)"}
+{"prompt": "TAL:\nINT PROC multiply(a, b): INT a, b;\nBEGIN\n  RETURN a * b;\nEND;\n\nPROC caller;\nBEGIN\n  INT x := 2, y := 3, result;\n  result := multiply(x, y);\nEND;\n\nPseudocode:\n", "completion": "function multiply(a, b) returns int:\n    return a * b\n\nprocedure caller:\n    x = 2\n    y = 3\n    result = multiply(x, y)"}
+{"prompt": "TAL:\nPROC main MAIN;\nBEGIN\n  CALL subproc;\nEND;\n\nPROC subproc;\nBEGIN\n  ENTRY label1, label2;\n  ! ...\nlabel1:\n  ! Entry point 1 logic\nlabel2:\n  ! Entry point 2 logic\nEND;\n\nPseudocode:\n", "completion": "procedure main:\n    call subproc\n\nprocedure subproc:\n    define entry point label1\n    define entry point label2\n    label1:\n        // logic 1\n    label2:\n        // logic 2"}
+{"prompt": "TAL:\nFOR i := 0 TO 9 DO sum := sum + i;\n\nPseudocode:\n", "completion": "// FOR example translated to pseudocode\nfor i from 0 to 9: add i to sum"}
+{"prompt": "TAL:\nIF x > y THEN result := x;\n\nPseudocode:\n", "completion": "// IF-THEN example translated to pseudocode\nif x > y then set result = x"}
+{"prompt": "TAL:\nFIXED amount := 100.00F;\n\nPseudocode:\n", "completion": "// FIXED example translated to pseudocode\ndeclare fixed-point amount and assign 100.00"}
+{"prompt": "TAL:\nPROC greet; BEGIN DISPLAY 'Hello'; END;\n\nPseudocode:\n", "completion": "// Simple PROC example translated to pseudocode\ndefine procedure greet that displays 'Hello'"}
+{"prompt": "TAL:\nREAL pi := 3.14159E0;\n\nPseudocode:\n", "completion": "// REAL example translated to pseudocode\ndeclare real pi and assign 3.14159"}
+{"prompt": "TAL:\nFIXED amount := 100.00F;\n\nPseudocode:\n", "completion": "// FIXED example translated to pseudocode\ndeclare fixed-point amount and assign 100.00"}
+{"prompt": "TAL:\nINT PROC square(n): INT n; BEGIN RETURN n * n; END;\n\nPseudocode:\n", "completion": "// Function PROC example translated to pseudocode\ndefine function square that returns n * n"}
+{"prompt": "TAL:\nIF x > y THEN result := x; ELSE result := y;\n\nPseudocode:\n", "completion": "// IF-THEN-ELSE example translated to pseudocode\nif x > y then result = x else result = y"}
+{"prompt": "TAL:\nPROC greet; BEGIN DISPLAY 'Hello'; END;\n\nPseudocode:\n", "completion": "// Simple PROC example translated to pseudocode\ndefine procedure greet that displays 'Hello'"}
+{"prompt": "TAL:\nREAL pi := 3.14159E0;\n\nPseudocode:\n", "completion": "// REAL example translated to pseudocode\ndeclare real pi and assign 3.14159"}
+{"prompt": "TAL:\nINT PROC square(n): INT n; BEGIN RETURN n * n; END;\n\nPseudocode:\n", "completion": "// Function PROC example translated to pseudocode\ndefine function square that returns n * n"}
+{"prompt": "TAL:\nINT PROC square(n): INT n; BEGIN RETURN n * n; END;\n\nPseudocode:\n", "completion": "// Function PROC example translated to pseudocode\ndefine function square that returns n * n"}
+{"prompt": "TAL:\nIF x > y THEN result := x; ELSE result := y;\n\nPseudocode:\n", "completion": "// IF-THEN-ELSE example translated to pseudocode\nif x > y then result = x else result = y"}
+{"prompt": "TAL:\nDO count := count + 1; UNTIL count = 10;\n\nPseudocode:\n", "completion": "// DO-UNTIL example translated to pseudocode\ndo: increment count until count == 10"}
+{"prompt": "TAL:\nINT PROC square(n): INT n; BEGIN RETURN n * n; END;\n\nPseudocode:\n", "completion": "// Function PROC example translated to pseudocode\ndefine function square that returns n * n"}
+{"prompt": "TAL:\nDO count := count + 1; UNTIL count = 10;\n\nPseudocode:\n", "completion": "// DO-UNTIL example translated to pseudocode\ndo: increment count until count == 10"}
+{"prompt": "TAL:\nWHILE count < 10 DO BEGIN count := count + 1; END;\n\nPseudocode:\n", "completion": "// WHILE example translated to pseudocode\nwhile count < 10: increment count"}
+{"prompt": "TAL:\nFIXED amount := 100.00F;\n\nPseudocode:\n", "completion": "// FIXED example translated to pseudocode\ndeclare fixed-point amount and assign 100.00"}
+{"prompt": "TAL:\nIF x > y THEN result := x; ELSE result := y;\n\nPseudocode:\n", "completion": "// IF-THEN-ELSE example translated to pseudocode\nif x > y then result = x else result = y"}
+{"prompt": "TAL:\nPROC add(a, b); INT a, b; BEGIN result := a + b; END;\n\nPseudocode:\n", "completion": "// PROC with params example translated to pseudocode\ndefine procedure add that sums a and b"}
+{"prompt": "TAL:\nINT x := 5;\n\nPseudocode:\n", "completion": "// INT example translated to pseudocode\ndeclare integer x and assign 5"}
+{"prompt": "TAL:\nINT PROC square(n): INT n; BEGIN RETURN n * n; END;\n\nPseudocode:\n", "completion": "// Function PROC example translated to pseudocode\ndefine function square that returns n * n"}
+{"prompt": "TAL:\nPROC add(a, b); INT a, b; BEGIN result := a + b; END;\n\nPseudocode:\n", "completion": "// PROC with params example translated to pseudocode\ndefine procedure add that sums a and b"}
+{"prompt": "TAL:\nPROC greet; BEGIN DISPLAY 'Hello'; END;\n\nPseudocode:\n", "completion": "// Simple PROC example translated to pseudocode\ndefine procedure greet that displays 'Hello'"}
+{"prompt": "TAL:\nPROC add(a, b); INT a, b; BEGIN result := a + b; END;\n\nPseudocode:\n", "completion": "// PROC with params example translated to pseudocode\ndefine procedure add that sums a and b"}
+{"prompt": "TAL:\nINT x := 5;\n\nPseudocode:\n", "completion": "// INT example translated to pseudocode\ndeclare integer x and assign 5"}
+{"prompt": "TAL:\nIF x > y THEN result := x; ELSE result := y;\n\nPseudocode:\n", "completion": "// IF-THEN-ELSE example translated to pseudocode\nif x > y then result = x else result = y"}
+{"prompt": "TAL:\nWHILE count < 10 DO BEGIN count := count + 1; END;\n\nPseudocode:\n", "completion": "// WHILE example translated to pseudocode\nwhile count < 10: increment count"}
+{"prompt": "TAL:\nINT PROC square(n): INT n; BEGIN RETURN n * n; END;\n\nPseudocode:\n", "completion": "// Function PROC example translated to pseudocode\ndefine function square that returns n * n"}
+{"prompt": "TAL:\nINT x := 5;\n\nPseudocode:\n", "completion": "// INT example translated to pseudocode\ndeclare integer x and assign 5"}
+{"prompt": "TAL:\nIF x > y THEN result := x; ELSE result := y;\n\nPseudocode:\n", "completion": "// IF-THEN-ELSE example translated to pseudocode\nif x > y then result = x else result = y"}
+{"prompt": "TAL:\nPROC greet; BEGIN DISPLAY 'Hello'; END;\n\nPseudocode:\n", "completion": "// Simple PROC example translated to pseudocode\ndefine procedure greet that displays 'Hello'"}
+{"prompt": "TAL:\nINT PROC square(n): INT n; BEGIN RETURN n * n; END;\n\nPseudocode:\n", "completion": "// Function PROC example translated to pseudocode\ndefine function square that returns n * n"}
+{"prompt": "TAL:\nINT PROC square(n): INT n; BEGIN RETURN n * n; END;\n\nPseudocode:\n", "completion": "// Function PROC example translated to pseudocode\ndefine function square that returns n * n"}
+{"prompt": "TAL:\nDO count := count + 1; UNTIL count = 10;\n\nPseudocode:\n", "completion": "// DO-UNTIL example translated to pseudocode\ndo: increment count until count == 10"}
+{"prompt": "TAL:\nDO count := count + 1; UNTIL count = 10;\n\nPseudocode:\n", "completion": "// DO-UNTIL example translated to pseudocode\ndo: increment count until count == 10"}
+{"prompt": "TAL:\nPROC greet; BEGIN DISPLAY 'Hello'; END;\n\nPseudocode:\n", "completion": "// Simple PROC example translated to pseudocode\ndefine procedure greet that displays 'Hello'"}
+{"prompt": "TAL:\nIF x > y THEN result := x;\n\nPseudocode:\n", "completion": "// IF-THEN example translated to pseudocode\nif x > y then set result = x"}
+{"prompt": "TAL:\nPROC add(a, b); INT a, b; BEGIN result := a + b; END;\n\nPseudocode:\n", "completion": "// PROC with params example translated to pseudocode\ndefine procedure add that sums a and b"}
+{"prompt": "TAL:\nFOR i := 0 TO 9 DO sum := sum + i;\n\nPseudocode:\n", "completion": "// FOR example translated to pseudocode\nfor i from 0 to 9: add i to sum"}
+{"prompt": "TAL:\nINT x := 5;\n\nPseudocode:\n", "completion": "// INT example translated to pseudocode\ndeclare integer x and assign 5"}
+{"prompt": "TAL:\nIF x > y THEN result := x; ELSE result := y;\n\nPseudocode:\n", "completion": "// IF-THEN-ELSE example translated to pseudocode\nif x > y then result = x else result = y"}
+{"prompt": "TAL:\nIF x > y THEN result := x;\n\nPseudocode:\n", "completion": "// IF-THEN example translated to pseudocode\nif x > y then set result = x"}
+{"prompt": "TAL:\nINT PROC square(n): INT n; BEGIN RETURN n * n; END;\n\nPseudocode:\n", "completion": "// Function PROC example translated to pseudocode\ndefine function square that returns n * n"}
+{"prompt": "TAL:\nINT PROC square(n): INT n; BEGIN RETURN n * n; END;\n\nPseudocode:\n", "completion": "// Function PROC example translated to pseudocode\ndefine function square that returns n * n"}
+{"prompt": "TAL:\nREAL pi := 3.14159E0;\n\nPseudocode:\n", "completion": "// REAL example translated to pseudocode\ndeclare real pi and assign 3.14159"}
+{"prompt": "TAL:\nPROC add(a, b); INT a, b; BEGIN result := a + b; END;\n\nPseudocode:\n", "completion": "// PROC with params example translated to pseudocode\ndefine procedure add that sums a and b"}
+{"prompt": "TAL:\nPROC greet; BEGIN DISPLAY 'Hello'; END;\n\nPseudocode:\n", "completion": "// Simple PROC example translated to pseudocode\ndefine procedure greet that displays 'Hello'"}
+{"prompt": "TAL:\nREAL pi := 3.14159E0;\n\nPseudocode:\n", "completion": "// REAL example translated to pseudocode\ndeclare real pi and assign 3.14159"}
+{"prompt": "TAL:\nFOR i := 0 TO 9 DO sum := sum + i;\n\nPseudocode:\n", "completion": "// FOR example translated to pseudocode\nfor i from 0 to 9: add i to sum"}
