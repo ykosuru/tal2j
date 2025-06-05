@@ -1,0 +1,341 @@
+import pdfplumber
+import re
+import json
+import uuid
+import nltk
+import numpy as np
+import faiss
+from keybert import KeyBERT
+from sentence_transformers import SentenceTransformer
+from nltk.tokenize import word_tokenize
+import logging
+import sys
+import os
+import glob
+from pathlib import Path
+
+# Setup logging
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+# Download NLTK data
+try:
+    nltk.download('punkt', quiet=True)
+except Exception as e:
+    logger.error(f"Failed to download NLTK data: {e}")
+    sys.exit(1)
+
+# Initialize models
+logger.info("Initializing KeyBERT and SentenceTransformer...")
+try:
+    kw_model = KeyBERT()
+    embedder = SentenceTransformer('all-MiniLM-L6-v2')
+except Exception as e:
+    logger.error(f"Failed to initialize models: {e}")
+    sys.exit(1)
+
+# FAISS index settings
+INDEX_FILE = 'faiss_index.bin'
+CHUNKS_FILE = 'chunks.json'
+
+def initialize_faiss(dimension=384):
+    """Initialize FAISS index."""
+    logger.info("Initializing FAISS index...")
+    try:
+        index = faiss.IndexFlatL2(dimension)
+        return index
+    except Exception as e:
+        logger.error(f"Failed to initialize FAISS: {e}")
+        sys.exit(1)
+
+def count_tokens(text):
+    """Count tokens in text using NLTK word tokenizer."""
+    try:
+        return len(word_tokenize(text))
+    except Exception as e:
+        logger.error(f"Token counting failed: {e}")
+        return 0
+
+def chunk_pdf(pdf_path, max_tokens=100):
+    """Chunk a PDF document into sections with metadata and keywords."""
+    logger.info(f"Chunking PDF: {pdf_path}")
+    chunks = []
+    if not os.path.exists(pdf_path):
+        logger.error(f"PDF file not found: {pdf_path}")
+        return chunks
+    try:
+        with pdfplumber.open(pdf_path) as pdf:
+            current_chunk = ""
+            current_metadata = {"document": str(pdf_path), "section": "Unknown", "page": 1}
+            for page in pdf.pages:
+                text = page.extract_text() or ""
+                tables = page.extract_tables()
+                page_num = page.page_number
+
+                lines = text.split("\n")
+                for line in lines:
+                    line = line.strip()
+                    if not line:
+                        continue
+
+                    if line.isupper() or len(line.split()) < 5:
+                        if current_chunk:
+                            if count_tokens(current_chunk) <= max_tokens:
+                                keywords = kw_model.extract_keywords(current_chunk, keyphrase_ngram_range=(1, 2), top_n=5)
+                                keywords = [kw[0] for kw in keywords]
+                                chunks.append({
+                                    "id": str(uuid.uuid4()),
+                                    "content": current_chunk,
+                                    "metadata": current_metadata,
+                                    "keywords": keywords
+                                })
+                            else:
+                                sentences = nltk.sent_tokenize(current_chunk)
+                                temp_chunk = ""
+                                for sent in sentences:
+                                    if count_tokens(temp_chunk + sent) <= max_tokens:
+                                        temp_chunk += sent + " "
+                                    else:
+                                        keywords = kw_model.extract_keywords(temp_chunk, keyphrase_ngram_range=(1, 2), top_n=5)
+                                        keywords = [kw[0] for kw in keywords]
+                                        chunks.append({
+                                            "id": str(uuid.uuid4()),
+                                            "content": temp_chunk,
+                                            "metadata": current_metadata,
+                                            "keywords": keywords
+                                        })
+                                        temp_chunk = sent + " "
+                                if temp_chunk:
+                                    keywords = kw_model.extract_keywords(temp_chunk, keyphrase_ngram_range=(1, 2), top_n=5)
+                                    keywords = [kw[0] for kw in keywords]
+                                    chunks.append({
+                                        "id": str(uuid.uuid4()),
+                                        "content": temp_chunk,
+                                        "metadata": current_metadata,
+                                        "keywords": keywords
+                                    })
+                            current_chunk = ""
+                        current_metadata = {"document": str(pdf_path), "section": line, "page": page_num}
+                    else:
+                        current_chunk += line + " "
+
+                for table in tables:
+                    table_text = json.dumps(table)
+                    if count_tokens(table_text) <= max_tokens:
+                        keywords = kw_model.extract_keywords(table_text, keyphrase_ngram_range=(1, 2), top_n=5)
+                        keywords = [kw[0] for kw in keywords]
+                        chunks.append({
+                            "id": str(uuid.uuid4()),
+                            "content": table_text,
+                            "metadata": {"document": str(pdf_path), "section": "Table", "page": page_num},
+                            "keywords": keywords
+                        })
+
+            if current_chunk:
+                if count_tokens(current_chunk) <= max_tokens:
+                    keywords = kw_model.extract_keywords(current_chunk, keyphrase_ngram_range=(1, 2), top_n=5)
+                    keywords = [kw[0] for kw in keywords]
+                    chunks.append({
+                        "id": str(uuid.uuid4()),
+                        "content": current_chunk,
+                        "metadata": current_metadata,
+                        "keywords": keywords
+                    })
+                else:
+                    sentences = nltk.sent_tokenize(current_chunk)
+                    temp_chunk = ""
+                    for sent in sentences:
+                        if count_tokens(temp_chunk + sent) <= max_tokens:
+                            temp_chunk += sent + " "
+                        else:
+                            keywords = kw_model.extract_keywords(temp_chunk, keyphrase_ngram_range=(1, 2), top_n=5)
+                            keywords = [kw[0] for kw in keywords]
+                            chunks.append({
+                                "id": str(uuid.uuid4()),
+                                "content": temp_chunk,
+                                "metadata": current_metadata,
+                                "keywords": keywords
+                            })
+                            temp_chunk = sent + " "
+                    if temp_chunk:
+                        keywords = kw_model.extract_keywords(temp_chunk, keyphrase_ngram_range=(1, 2), top_n=5)
+                        keywords = [kw[0] for kw in keywords]
+                        chunks.append({
+                            "id": str(uuid.uuid4()),
+                            "content": temp_chunk,
+                            "metadata": current_metadata,
+                            "keywords": keywords
+                        })
+    except Exception as e:
+        logger.error(f"Failed to chunk PDF {pdf_path}: {e}")
+    return chunks
+
+def chunk_tal_code(tal_path, max_tokens=100):
+    """Chunk a TAL code file into procedures with metadata and keywords."""
+    logger.info(f"Chunking TAL code: {tal_path}")
+    chunks = []
+    if not os.path.exists(tal_path):
+        logger.error(f"TAL file not found: {tal_path}")
+        return chunks
+    try:
+        with open(tal_path, 'r') as file:
+            code = file.read()
+
+        proc_pattern = re.compile(r'^\s*PROC\s+(\w+).*?(?=^\s*(?:PROC|END\s*PROGRAM|$))', re.MULTILINE | re.DOTALL)
+        matches = proc_pattern.finditer(code)
+
+        for match in matches:
+            proc_name = match.group(1)
+            proc_code = match.group(0).strip()
+            if count_tokens(proc_code) <= max_tokens:
+                keywords = kw_model.extract_keywords(proc_code, keyphrase_ngram_range=(1, 2), top_n=5)
+                keywords = [kw[0] for kw in keywords]
+                chunks.append({
+                    "id": str(uuid.uuid4()),
+                    "content": proc_code,
+                    "metadata": {"program": str(tal_path), "procedure": proc_name},
+                    "keywords": keywords
+                })
+            else:
+                lines = proc_code.split("\n")
+                temp_chunk = ""
+                for line in lines:
+                    if count_tokens(temp_chunk + line) <= max_tokens:
+                        temp_chunk += line + "\n"
+                    else:
+                        keywords = kw_model.extract_keywords(temp_chunk, keyphrase_ngram_range=(1, 2), top_n=5)
+                        keywords = [kw[0] for kw in keywords]
+                        chunks.append({
+                            "id": str(uuid.uuid4()),
+                            "content": temp_chunk,
+                            "metadata": {"program": str(tal_path), "procedure": proc_name},
+                            "keywords": keywords
+                        })
+                        temp_chunk = line + "\n"
+                if temp_chunk:
+                    keywords = kw_model.extract_keywords(temp_chunk, keyphrase_ngram_range=(1, 2), top_n=5)
+                    keywords = [kw[0] for kw in keywords]
+                    chunks.append({
+                        "id": str(uuid.uuid4()),
+                        "content": temp_chunk,
+                        "metadata": {"program": str(tal_path), "procedure": proc_name},
+                        "keywords": keywords
+                    })
+    except Exception as e:
+        logger.error(f"Failed to chunk TAL code {tal_path}: {e}")
+    return chunks
+
+def generate_embeddings(chunks):
+    """Generate embeddings for chunks using Sentence-BERT."""
+    logger.info("Generating embeddings...")
+    try:
+        for chunk in chunks:
+            chunk['embedding'] = embedder.encode(chunk['content'], convert_to_tensor=False).tolist()
+    except Exception as e:
+        logger.error(f"Failed to generate embeddings: {e}")
+        sys.exit(1)
+    return chunks
+
+def store_in_faiss(chunks, index):
+    """Store chunks and embeddings in FAISS index and save to disk."""
+    logger.info("Storing in FAISS...")
+    try:
+        if not chunks:
+            logger.warning("No chunks to store in FAISS.")
+            return
+        vectors = np.array([chunk['embedding'] for chunk in chunks], dtype=np.float32)
+        faiss.normalize_L2(vectors)
+        index.add(vectors)
+        faiss.write_index(index, INDEX_FILE)
+        with open(CHUNKS_FILE, 'w') as f:
+            json.dump(chunks, f, indent=2)
+    except Exception as e:
+        logger.error(f"Failed to store in FAISS: {e}")
+        sys.exit(1)
+
+def search_chunks(query, index, chunks, top_k=5):
+    """Search for relevant chunks in FAISS based on query."""
+    logger.info(f"Searching for query: {query}")
+    try:
+        query_embedding = embedder.encode(query, convert_to_tensor=False).reshape(1, -1).astype(np.float32)
+        faiss.normalize_L2(query_embedding)
+        distances, indices = index.search(query_embedding, top_k)
+        results = []
+        for idx, distance in zip(indices[0], distances[0]):
+            if idx < len(chunks):
+                chunk = chunks[idx]
+                results.append({
+                    'id': chunk['id'],
+                    'content': chunk['content'],
+                    'metadata': chunk['metadata'],
+                    'keywords': chunk['keywords'],
+                    'score': 1 - distance
+                })
+        return results
+    except Exception as e:
+        logger.error(f"Search failed: {e}")
+        return []
+
+def main(docs_folder='docs', code_folder='code', query=None):
+    """Main method to chunk, embed, store, and search PDF and TAL chunks from folders using FAISS."""
+    logger.info("Starting main function...")
+    
+    # Check if folders exist
+    docs_folder = os.path.expanduser(docs_folder)
+    code_folder = os.path.expanduser(code_folder)
+    if not (os.path.isdir(docs_folder) or os.path.isdir(code_folder)):
+        logger.error("No valid input folders found. Please provide valid 'docs' or 'code' folders.")
+        sys.exit(1)
+
+    index = initialize_faiss()
+    all_chunks = []
+
+    # Process PDF files
+    if os.path.isdir(docs_folder):
+        pdf_files = glob.glob(os.path.join(docs_folder, "*.pdf"))
+        logger.info(f"Found {len(pdf_files)} PDF files in {docs_folder}")
+        for pdf_path in pdf_files:
+            chunks = chunk_pdf(pdf_path)
+            all_chunks.extend(chunks)
+    else:
+        logger.warning(f"Docs folder not found: {docs_folder}")
+
+    # Process TAL files
+    if os.path.isdir(code_folder):
+        tal_files = glob.glob(os.path.join(code_folder, "*.tal"))
+        logger.info(f"Found {len(tal_files)} TAL files in {code_folder}")
+        for tal_path in tal_files:
+            chunks = chunk_tal_code(tal_path)
+            all_chunks.extend(chunks)
+    else:
+        logger.warning(f"Code folder not found: {code_folder}")
+
+    logger.info(f"Generated {len(all_chunks)} chunks")
+    
+    if not all_chunks:
+        logger.error("No chunks generated. Exiting.")
+        sys.exit(1)
+    
+    all_chunks = generate_embeddings(all_chunks)
+    store_in_faiss(all_chunks, index)
+    logger.info(f"Chunks and embeddings stored in FAISS index '{INDEX_FILE}' and metadata saved to '{CHUNKS_FILE}'")
+    
+    if query:
+        results = search_chunks(query, index, all_chunks)
+        logger.info(f"Found {len(results)} search results")
+        print("\nSearch Results:")
+        for i, result in enumerate(results, 1):
+            print(f"\nResult {i} (Score: {result['score']:.4f}):")
+            print(f"Content: {result['content'][:200]}...")
+            print(f"Metadata: {result['metadata']}")
+            print(f"Keywords: {result['keywords']}")
+
+if __name__ == "__main__":
+    logger.info("Script started")
+    import argparse
+    parser = argparse.ArgumentParser(description="Chunk and search PDF and TAL files from folders.")
+    parser.add_argument('--docs', default='docs', help='Path to folder containing PDF files')
+    parser.add_argument('--code', default='code', help='Path to folder containing TAL files')
+    parser.add_argument('--query', default='What are the loan approval requirements?', help='Search query')
+    args = parser.parse_args()
+    main(docs_folder=args.docs, code_folder=args.code, query=args.query)
